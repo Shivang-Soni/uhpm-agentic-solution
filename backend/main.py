@@ -7,5 +7,5 @@ app.include_router(router)
 
 
 @app.get("/")
-def root(): 
+def root():
     return {"status": "ok", "msg": "UHPM Agent API is running."}
