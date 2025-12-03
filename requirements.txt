@@ -1,5 +1,7 @@
-fastapi
-uvicorn 
-python-dotenv
-langgraph 
-langchain
+fastapi==0.110.0
+uvicorn[standard]==0.30.0
+python-dotenv==1.0.1
+langgraph==0.4.0
+langchain==0.2.10
+langchain-core==0.2.38
+uvicorn[standard]==0.30.0
