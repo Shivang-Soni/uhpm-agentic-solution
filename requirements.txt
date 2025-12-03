@@ -1,7 +1,9 @@
 fastapi==0.110.0
 uvicorn[standard]==0.30.0
 python-dotenv==1.0.1
+
+langchain>=0.0.142,<0.1
+langchain-core>=0.2.38,<0.4
 langgraph==0.4.0
-langchain==0.2.10
-langchain-core==0.2.38
-uvicorn[standard]==0.30.0
+langgraph-checkpoint>=2.0.10,<3.0
+
