@@ -1,40 +1,49 @@
+import uuid
 import chromadb
-from langchain_community.vectorstores import Chroma 
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from sentence_transformers import SentenceTransformer
 from core.config import settings
 
+# load embedding model
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Load embeddings model
-embedding_function = SentenceTransformerEmbeddings(
-    model_name="all-MiniLM-L6-v2"
+# init persistent client
+chroma_client = chromadb.PersistentClient(path=settings.PERSIST_DIRECTORY)
+
+# load/create collection
+collection = chroma_client.get_or_create_collection(
+    name="uhpm_collection",
+    metadata={"hnsw:space": "cosine"}
+)
+
+
+def add_document(text: str, metadata: dict | None = None):
+    doc_id = str(uuid.uuid4())
+    embedding = embedding_model.encode(text).tolist()
+
+    collection.add(
+        ids=[doc_id],
+        documents=[text],
+        embeddings=[embedding],
+        metadatas=[metadata or {"source": "manual"}],
     )
 
-
-def get_vectorstore():
-    """
-    Returns a Chroma vector store instance.
-    """
-    return Chroma(
-        embedding_function=embedding_function,
-        persist_directory=settings.PERSIST_DIRECTORY
-    )
-
-
-def add_document(text: str, metadata: dict = None):
-    """
-    Adds a document to the vector store.
-    """
-    vector_store = get_vectorstore()
-    vector_store.add_texts(
-        [text],
-        metadatas=[metadata or {}]
-    )
-    vector_store.persist()
+    return {"id": doc_id, "text": text}
 
 
 def search(query: str, k: int = 3):
-    """
-    Searches the vector store using semantic search.
-    """
-    vector_store = get_vectorstore()
-    return vector_store.similarity_search(query, k=k)
+    query_embedding = embedding_model.encode(query).tolist()
+
+    # MUST SPECIFY include=..., or Chroma returns a non-serializable object
+    raw = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=k,
+        include=["ids", "documents", "metadatas", "distances"],
+    )
+
+    # ALWAYS convert to primitive dict
+    return {
+        "ids": raw.get("ids", [[]])[0],
+        "documents": raw.get("documents", [[]])[0],
+        "metadatas": raw.get("metadatas", [[]])[0],
+        "distances": raw.get("distances", [[]])[0],
+    }
