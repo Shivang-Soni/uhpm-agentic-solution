@@ -1,5 +1,7 @@
-from langgraph.graph import StateGraph, END
 import logging
+from typing import TypedDict
+
+from langgraph.graph import StateGraph, END
 
 # Initialise Logger
 logging.basicConfig(level=logging.INFO)
@@ -7,24 +9,24 @@ logger = logging.getLogger(__name__)
 
 
 # Define state
-class State(dict):
+class State(TypedDict):
     message: str
 
 
 # Create Node functions
-def node_a(state: State):
+def node_a(state: dict):
     logging.info("Executing Node A.")
     return {"message": "Hello from Node A"}
 
 
-def node_b(state: State):
+def node_b(state: dict):
     logging.info("Executing Node B.")
     return {"message": state["message"] + " -> directed to Node B"}
 
 
 # Define Graph
 def build_basic_graph():
-    graph = StateGraph(State)
+    graph = StateGraph(state_schema=State)
     graph.add_node("step_a", node_a)
     graph.add_node("step_b", node_b)
 
