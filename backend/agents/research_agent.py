@@ -23,8 +23,13 @@ class ResearchAgent:
         Analyse the following product:
         {product_text}
         Competitor information: {competitor_text if competitor_text else "N/A"}
-        Provide structured insights:
-          Product summary, USPs, Target Audience, Competitor Comparison.
+        Give the results in following JSON format:
+        {{
+            "product_summary": "2 Sentences",
+            "usps": ["List", "of", "USPs"],
+            "target_audience": ["List", "of", "Target", "Audience"],
+            "competitor_comparison": "2 Sentences"
+        }}
         """
         response = invoke(prompt)
         if response:
@@ -33,6 +38,7 @@ class ResearchAgent:
                 response, 
                 metadata={
                     "product_text": product_text,
-                    "compeititor_text": competitor_text
+                    "competititor_text": competitor_text
                     })
-        return response or "No response is available."
+        return response or "No response is available.""
+
