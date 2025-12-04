@@ -1,7 +1,8 @@
-.venv
+venv
 __pycache__
 node_modules
 dist
 .env
 *.pyc
 .vscode
+chroma_store
