@@ -12,7 +12,9 @@ class ResearchAgent:
     def __init__(self):
         pass
 
-    def analyse_product(self, product_text: str, competitor_text: str = None) -> str:
+    def analyse_product(
+            self, product_text: str, competitor_text: str | None
+            ) -> str:
         """
         Analyses the product text and competitor text
         altogether and provides insights. Then saves these
@@ -40,5 +42,5 @@ class ResearchAgent:
                     "product_text": product_text,
                     "competititor_text": competitor_text
                     })
-        return response or "No response is available.""
+        return response or "No response is available."
 
