@@ -37,7 +37,7 @@ class ResearchAgent:
         if response:
             logger.info("Analysis completed successfully.")
             add_document(
-                response, 
+                response,
                 metadata={
                     "product_text": product_text,
                     "competititor_text": competitor_text
