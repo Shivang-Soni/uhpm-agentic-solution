@@ -1,4 +1,5 @@
 import uuid
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 from core.config import settings
@@ -33,11 +34,11 @@ def add_document(text: str, metadata: dict | None = None):
 def search(query: str, k: int = 3):
     query_embedding = embedding_model.encode(query).tolist()
 
-    # MUST SPECIFY include=..., or Chroma returns a non-serializable object
+    # MUST SPECIFY include param, or Chroma returns a non-serializable object
     raw = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
-        include=["ids", "documents", "metadatas", "distances"],
+        include=["documents", "metadatas", "distances"],
     )
 
     # ALWAYS convert to primitive dict
