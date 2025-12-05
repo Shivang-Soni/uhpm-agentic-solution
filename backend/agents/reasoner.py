@@ -15,55 +15,74 @@ class ReasonerAgent:
 
     def decide(self, user_task: str):
         """
-        Core reasoning layer, that:
-        - retrieves context
-        - prepared a structured reasoning prompt
+        Core reasoning layer:
+        - retrieves memory
+        - prepares a structured reasoning prompt
         - calls LLM
-        - returns a structured JSON response
+        - returns a structured JSON response with task classification + next action
         """
 
         logger.info("Starting reasoning process.")
 
-        # Memory retrieval
+        # Retrieve memory context
         retrieved = self.retriever.search_docs(user_task)
 
-        # Prepare the prompt for the LLM call
+        # LLM Prompt
         prompt = f"""
-        You are the CORE REASONING AGENT of a marketing AI system.
+        You are the CORE REASONING AGENT of an advanced marketing AI system.
 
-        Your job is to:
-        - Analyse the user's task
-        - Use retrieved memory
-        - Determine clearly structured next steps
-        - ALWAYS return JSON only.
+        Your responsibilities:
+        - Analyze the user's request
+        - Use retrieved memory context
+        - Decide what type of task this is
+        - Identify the correct subsystem (agent) to call
+        - Determine what inputs are needed for the next action
+        - ALWAYS return a VALID JSON OBJECT. Never return text outside JSON.
 
-        User's request:
+        === Classification Rules ===
+        If the task is about:
+        - target audience
+        - personas
+        - ideal customer
+        - segmentation
+        - buyer insights  
+        → classify it as: "persona"
+        → action: "call_persona_agent"
+        → inputs_needed: ["product_text", "market_text"]
+
+        Other categories:
+        - research → action: "call_research_agent"
+        - analysis → action: "call_analysis_agent"
+        - content → action: "call_content_agent"
+        - experiment → action: "call_experiment_agent"
+
+        === INPUT ===
+        User request:
         {user_task}
 
-        Retrieved memory (past research results, notes, insights):
+        Retrieved memory:
         {json.dumps(retrieved, indent=2)}
 
-        Respond ONLY in the following JSON format:
+        === OUTPUT FORMAT ===
         {{
-        "task_type": "research|persona|content|experiment|analysis",
-        "reasoning": "your chain of thought (short, high-level)",
-        "action": "what the system should do next",
-        "inputs_needed": ["list", "of", "inputs", "required"]
+          "task_type": "research|persona|content|experiment|analysis",
+          "reasoning": "short high-level justification",
+          "action": "which agent to call next",
+          "inputs_needed": ["list", "of", "required", "inputs"]
         }}
         """
 
+        # Call LLM
         response = invoke(prompt)
 
         if not response:
             return {"error": "No reasoning response returned."}
-        
-        # Try to parse the response as JSON
-        try: 
-            structured_response = json.loads(response)
+
+        # Validate & parse JSON safely
+        try:
+            structured = json.loads(response)
         except json.JSONDecodeError:
-            logger.warning(
-                "Agent returned non-JSON response....Wrapping raw text"
-                )
-            structured_response = {"raw_text": response}
-        
-        return structured_response
+            logger.warning("ReasonerAgent: Response was not valid JSON. Wrapping text.")
+            structured = {"raw_text": response}
+
+        return structured
