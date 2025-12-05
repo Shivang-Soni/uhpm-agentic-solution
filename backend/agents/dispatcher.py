@@ -54,6 +54,15 @@ class Dispatcher:
                 "agent_result": result
             }
         elif task_type == "persona":
+            result = self.persona_agent.generate_persona(
+                product_text=user_payload.get("product_text", ""),
+                market_text=user_payload.get("market_text", "")
+            )
+
+            return {
+                "status": "persona_generated",
+                "agent_result": result
+            }
             
         # fallback for unrecognised task type(s)
         return {
