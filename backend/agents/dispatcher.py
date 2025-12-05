@@ -1,6 +1,7 @@
 import logging
 
 from agents.research_agent import ResearchAgent
+from agents.persona_agent import PersonaAgent
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ logger.setLevel(logging.info)
 class Dispatcher:
     def __init__(self):
         self.research_agent = ResearchAgent()
-        # self.persona_agent = PersonaAgent()
+        self.persona_agent = PersonaAgent()
         # self.content_agent = ContentAgent()
         # self.experiment_agent = ExperimentAgent()
     
@@ -52,6 +53,8 @@ class Dispatcher:
                 "status": "research_completed",
                 "agent_result": result
             }
+        elif task_type == "persona":
+            
         # fallback for unrecognised task type(s)
         return {
             "status": "unrecognised_task_type",
