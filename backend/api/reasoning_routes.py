@@ -17,6 +17,8 @@ dispatcher = Dispatcher()
 
 class ReasonRequest(BaseModel):
     task: str
+    product_text: str | None = None
+    customer_text: str | None = None
 
 
 @router.post("/reason")
@@ -29,7 +31,10 @@ async def reason_endpoint(request: ReasonRequest):
         # Run core reasoning layer
         reasoning = reasoner.decide(request.task)
         # Dispatch to appropriate agent
-        dispatch_result = dispatcher.run(reasoning)
+        dispatch_result = dispatcher.run(
+            reason_output=reasoning,
+            user_payload=request.dict()
+            )
 
         return {
             "reasoning": reasoning,
