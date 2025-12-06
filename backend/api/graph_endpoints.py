@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 class GraphRequest(BaseModel):
-    task: str,
+    task: str
     product_text: Optional[str] | None
     competitor_text: Optional[str] | None
     market_text: Optional[str] | None
