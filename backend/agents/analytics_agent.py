@@ -1,3 +1,4 @@
+import json
 import logging
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
@@ -17,10 +18,14 @@ class AnalyticsAgent:
 
     def analyse_campaign(self, campaign_results: str):
         """
-        campaign_results: JSON or text of impressions, clicks,
-          conversions, etc.
-        """
+        Analyzes campaign results and produces structured insights.
 
+        Args:
+        - campaign_results: JSON or text of impressions, clicks, conversions, etc.
+
+        Returns:
+        - Structured JSON with summary, persona changes, content improvements, channel recommendations, next steps.
+        """
         prompt = f"""
         You are a SENIOR AI MARKETING PERFORMANCE ANALYST.
 
@@ -37,23 +42,46 @@ class AnalyticsAgent:
 
         Return clean JSON:
         {{
-        "summary": "...",
-        "persona_changes": [...],
-        "content_improvements": [...],
-        "channel_recommendations": [...],
-        "next_steps": [...]
+            "summary": "...",
+            "persona_changes": [...],
+            "content_improvements": [...],
+            "channel_recommendations": [...],
+            "next_steps": [...]
         }}
         """
 
         response = invoke(prompt)
 
         if not response:
-            return "No analytics could be generated."
-        
+            logger.warning("No response from Analytics Agent")
+            return {
+                "summary": "",
+                "persona_changes": [],
+                "content_improvements": [],
+                "channel_recommendations": [],
+                "next_steps": [],
+                "error": "No response from Agent"
+            }
+
+        # Validate JSON and apply fallback if needed
+        try:
+            json_response = json.loads(response)
+        except json.JSONDecodeError:
+            logger.error("Analytics JSON invalid. Applying fallback structure.")
+            json_response = {
+                "summary": "",
+                "persona_changes": [],
+                "content_improvements": [],
+                "channel_recommendations": [],
+                "next_steps": [],
+                "error": "Invalid JSON from Agent"
+            }
+
+        # Store in vector DB
         add_document(
-            response,
+            json.dumps(json_response),
             metadata={"type": "analytics", "source": "campaign_feedback"}
         )
 
-        logger.info("Analytics insights stored successfully")
-        return response
+        logger.info("Analytics insights stored successfully.")
+        return json_response
