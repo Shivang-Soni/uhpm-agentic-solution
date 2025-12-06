@@ -48,7 +48,9 @@ class ResearchAgent:
             try:
                 result = json.loads(response)
             except json.JSONDecodeError:
-                logger.error("JSON Parsing failed. Generating fallback structure.")
+                logger.error(
+                    "JSON Parsing failed. Generating fallback structure."
+                    )
                 return {
                     "product_summary": "",
                     "usps": [],
@@ -56,7 +58,7 @@ class ResearchAgent:
                     "competitor_comparision": "",
                     "error": "Invalid JSON from model."
                 }
-    
+
             # Field normalization
             result.setdefault("product_summary", "")
             result.setdefault("usps", [])
@@ -66,7 +68,7 @@ class ResearchAgent:
             # Cleaning
             if isinstance(result["usps"], str):
                 result["usps"] = [result["usps"]]
- 
+
             if isinstance(result["target_audience"], str):
                 result["target_audience"] = [result["target_audience"]]
 
