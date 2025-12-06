@@ -1,7 +1,5 @@
 import logging
-
-from agents.research_agent import ResearchAgent
-from agents.persona_agent import PersonaAgent
+import traceback
 
 # Logger setup
 logger = logging.getLogger(__name__)
@@ -9,12 +7,30 @@ logger.setLevel(logging.info)
 
 
 class Dispatcher:
-    def __init__(self):
-        self.research_agent = ResearchAgent()
-        self.persona_agent = PersonaAgent()
-        # self.content_agent = ContentAgent()
-        # self.experiment_agent = ExperimentAgent()
+    """
+        The Dispatcher recieves the Reasoner output
+        and calls the correct agent.
+        It ensures:
+        - required inputs exist
+        - clean error handling
+        - structured responses
+        - compatibility with ReasonerAgent (task_type + action)
+    """
+    def __init__(
+            self,
+            research_agent,
+            persona_agent,
+            content_agent,
+            experiment_agent,
+            analytics_agent
+            ):
+        self.research_agent = research_agent
+        self.persona_agent = persona_agent
+        self.content_agent = content_agent
+        self.experiment_agent = experiment_agent
+        self.analytics_agent = analytics_agent
     
+    # Main Dispatcher Routing
     def run(self, reason_output: dict, user_payload: dict):
         """
         Orchestrates actual execution of the selected agent
@@ -43,29 +59,42 @@ class Dispatcher:
                 "what_is_needed": inputs_needed
             }
 
-        if task_type == "research":
-            result = self.research_agent.analyse_product(
-                product_text=user_payload.get("product_text", ""),
-                competitor_text=user_payload.get("competitor_text", "")
-            )
-
+        try:
+            if action=="call_research_agent":
+                result = self.research_agent.analyse_product(
+                    product_text=user_payload.get("product_text", ""),
+                    competitor_text=user_payload.get("competitor_text", "")
+                )
+                return {"status": "research_done", "result": result}
+            elif action=="call_persona_agent":
+                result = self.persona_agent.generate_persona(
+                    product_text=user_payload.get("product_text", ""),
+                    market_text=user_payload.get("market_text", "")
+                )
+                return {"status": "persona_done", "result": result}
+            elif action=="call_experiment_agent":
+                result = self.experiment_agent.run_experiment(
+                    persona_text=user_payload.get("persona_text", ""),
+                    channel=user_payload.get("channel", ""),
+                    variants=user_payload.get("variants", [])
+                )
+                return {"status": "experiment_done", "result": result}
+            elif action=="call_analytics_agent":
+                result = self.analytics_agent.analyse_campaign(
+                    campaign_results=user_payload.get("campaign_results", "")
+                    )
+                return {"status": "analytics_done", "result": result}
+            else:
+                return {
+                    "status": "unknown_action",
+                    "received_action": action,
+                    "reasoner_output": reason_output
+                }
+        
+        except Exception as e:
+            logger.error(f"Agent crashed: {e}")
             return {
-                "status": "research_completed",
-                "agent_result": result
+                "status": "agent_error",
+                "error": str(e),
+                "trace": traceback.format_exc()
             }
-        elif task_type == "persona":
-            result = self.persona_agent.generate_persona(
-                product_text=user_payload.get("product_text", ""),
-                market_text=user_payload.get("market_text", "")
-            )
-
-            return {
-                "status": "persona_generated",
-                "agent_result": result
-            }
-            
-        # fallback for unrecognised task type(s)
-        return {
-            "status": "unrecognised_task_type",
-            "details": reason_output
-        }
