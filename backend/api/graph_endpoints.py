@@ -1,9 +1,9 @@
 import asyncio
 import logging
+from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
 
 from graph.runner import run_graph
 
