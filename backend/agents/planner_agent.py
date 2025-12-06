@@ -22,7 +22,8 @@ class PlannerAgent:
         """
 
         prompt = f"""
-        You are the Planner Agent of an Ultra High Performance Marketing AI System.
+        You are the Planner Agent of an ULTRA HIGH PERFORMANCE MARKETING AI
+        SYSTEM.
         Your job is to analyze the user's request and output a JSON plan that
         tells the system which agents must be activated.
 
@@ -51,7 +52,9 @@ class PlannerAgent:
         response = invoke(prompt)
 
         if not response:
-            logger.error("PlannerAgent: LLM returned no response. Using fallback plan.")
+            logger.error(
+                "PlannerAgent returned no response. Using fallback plan."
+                )
             return {
                 "task": user_task,
                 "needs_research": True,
@@ -59,14 +62,14 @@ class PlannerAgent:
                 "needs_content": False,
                 "needs_experimentation": False,
                 "needs_analytics": False,
-                "additional_context": "Fallback: No LLM response"
+                "additional_context": "Fallback: No Agent response"
             }
 
         try:
             plan = json.loads(response)
         except Exception as e:
             logger.error(f"PlannerAgent failed to JSON parse: {e}")
-            logger.error(f"Raw LLM response: {response}")
+            logger.error(f"Raw Agent response: {response}")
 
             # Fallback if JSON fails
             return {
@@ -76,7 +79,7 @@ class PlannerAgent:
                 "needs_content": False,
                 "needs_experimentation": False,
                 "needs_analytics": False,
-                "additional_context": "Invalid LLM JSON, fallback used."
+                "additional_context": "Invalid JSON, fallback used."
             }
 
         logger.info(f"PLANNER PLAN GENERATED: {plan}")
