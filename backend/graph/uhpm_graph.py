@@ -41,7 +41,7 @@ memory = MemorySaver()
 
 
 def reason_node(state: GraphState):
-    task = state["task"]
+    task = state.get("task", "")
     reasoning = reasoner.decide(task)
     state["reasoning"] = reasoning
     return state
@@ -68,7 +68,7 @@ def write_memory_node(state: GraphState):
 
 def create_uhpm_graph():
     graph = StateGraph(GraphState)
-    
+
     graph.add_node("reason", reason_node)
     graph.add_node("dispatch", dispatch_node)
     graph.add_node("memory", write_memory_node)
