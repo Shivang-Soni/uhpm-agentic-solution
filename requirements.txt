@@ -1,19 +1,16 @@
-# Core Framework
-fastapi==0.95.2
+fastapi==0.115.2
 uvicorn[standard]==0.30.0
 python-dotenv==1.0.1
-pydantic==1.10.12
+pydantic==2.10.3
+pydantic-settings==2.4.0
 
-# Woekflows
-langchain==0.0.142
-langchain-core==0.2.38
+langchain==0.3.7
+langchain-core==0.3.17
+
+google-genai>=1.53.0
+
 langgraph==0.4.0
 langgraph-checkpoint==2.0.10
 
-# Vectorstore and embeddings
-chromadb==0.4.24
+chromadb==0.5.11
 sentence-transformers==2.5.1
-
-# Google Gemini
-google-genai
-
