@@ -13,8 +13,6 @@ langgraph-checkpoint==2.0.10
 # Vectorstore and embeddings
 chromadb==0.4.24
 sentence-transformers==2.5.1
-torch==2.0.1
-xformers==0.0.20
 
 # Google Gemini
 google-genai
