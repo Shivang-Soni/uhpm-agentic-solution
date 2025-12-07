@@ -1,5 +1,6 @@
 import json
 import logging
+
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
 
@@ -21,10 +22,12 @@ class AnalyticsAgent:
         Analyzes campaign results and produces structured insights.
 
         Args:
-        - campaign_results: JSON or text of impressions, clicks, conversions, etc.
+        - campaign_results: JSON or text of impressions, clicks,
+          conversions, etc.
 
         Returns:
-        - Structured JSON with summary, persona changes, content improvements, channel recommendations, next steps.
+        - Structured JSON with summary, persona changes, content improvements,
+          channel recommendations, next steps.
         """
         prompt = f"""
         You are a SENIOR AI MARKETING PERFORMANCE ANALYST.
@@ -40,7 +43,8 @@ class AnalyticsAgent:
         - Channel recommendations
         - Clear steps to improve conversion
 
-        Return clean JSON:
+        Return ONLY clean JSON STRICTLY in the following format,
+          and no text outside JSON:
         {{
             "summary": "...",
             "persona_changes": [...],
