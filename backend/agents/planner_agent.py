@@ -1,6 +1,8 @@
 import logging
 import json
+
 from llm.gemini_pipeline import invoke
+from agents.schemas import PlannerOutput
 
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -55,32 +57,51 @@ class PlannerAgent:
             logger.error(
                 "PlannerAgent returned no response. Using fallback plan."
                 )
-            return {
-                "task": user_task,
-                "needs_research": True,
-                "needs_persona": False,
-                "needs_content": False,
-                "needs_experimentation": False,
-                "needs_analytics": False,
-                "additional_context": "Fallback: No Agent response"
-            }
+            return PlannerOutput(
+                task=user_task,
+                needs_research=True,
+                needs_persona=False,
+                needs_content=False,
+                needs_experimentation=False,
+                needs_analytics=False,
+                additional_context="Fallback: No agent response"
+            )
 
         try:
-            plan = json.loads(response)
+            parsed = json.loads(response)
         except Exception as e:
             logger.error(f"PlannerAgent failed to JSON parse: {e}")
             logger.error(f"Raw Agent response: {response}")
 
             # Fallback if JSON fails
-            return {
-                "task": user_task,
-                "needs_research": True,
-                "needs_persona": False,
-                "needs_content": False,
-                "needs_experimentation": False,
-                "needs_analytics": False,
-                "additional_context": "Invalid JSON, fallback used."
-            }
+            return PlannerOutput(
+                task=user_task,
+                needs_research=True,
+                needs_persona=False,
+                needs_content=False,
+                needs_experimentation=False,
+                needs_analytics=False,
+                additional_context="Invalid JSON, fallback used."
+            )
+        
+        # Pydantic validation
+        try:
+            plan = PlannerOutput(**parsed)
+        except Exception as e:
+            logger.error(
+                "PlannerAgent JSON Structure invalid for PlannerOutput."
+                )
+            logger.error(f"Validation error: {e}")
+            logger.error(f"Parsed JSON: {parsed}")
+            return PlannerOutput(
+                task=user_task,
+                needs_research=True,
+                needs_persona=False,
+                needs_content=False,
+                needs_experimentation=False,
+                needs_analytics=False,
+                additional_context="Validation failed, fallback used."
+            )
 
         logger.info(f"PLANNER PLAN GENERATED: {plan}")
         return plan
