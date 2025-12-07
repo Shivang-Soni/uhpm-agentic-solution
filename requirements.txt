@@ -1,14 +1,21 @@
-pydantic==1.6
+# Core Framework
 fastapi==0.95.2
 uvicorn[standard]==0.30.0
 python-dotenv==1.0.1
+pydantic==1.10.12
 
+# Woekflows
 langchain==0.0.142
 langchain-core==0.2.38
 langgraph==0.4.0
 langgraph-checkpoint==2.0.10
 
+# Vectorstore and embeddings
 chromadb==0.4.24
 sentence-transformers==2.5.1
+torch==2.0.1
+xformers==0.0.20
 
+# Google Gemini
 google-genai
+
