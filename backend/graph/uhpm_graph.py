@@ -1,6 +1,8 @@
+from typing import TypedDict, Any
+
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-
+# Agents
 from agents.planner_agent import PlannerAgent
 from agents.reasoner import ReasonerAgent
 from agents.dispatcher import Dispatcher
@@ -13,9 +15,12 @@ from agents.analytics_agent import AnalyticsAgent
 from vectorstore.store import add_document
 
 
-class GraphState(dict):
+class GraphState(TypedDict, total=False):
     """Shared state between nodes."""
-    pass
+    task: str
+    plan: dict | str | Any
+    reasoning: dict | str | Any
+    agent_output: dict | str | Any
 
 
 # Agent initialisation
