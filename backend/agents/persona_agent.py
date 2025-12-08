@@ -14,7 +14,7 @@ class PersonaAgent:
         pass
 
     def _fallback_persona(self, error_message: str) -> dict:
-        """Fallback structure if the JSON fails or the model breaks"""
+        """Fallback structure if JSON parsing fails or response is empty"""
         return {
             "persona_name": "",
             "age_range": "",
@@ -25,13 +25,13 @@ class PersonaAgent:
             "buying_triggers": "",
             "objections": "",
             "language_and_tone": "",
-            "recommended_channels": [],      # <-- FIX
+            "recommended_channels": [],
             "summary": "",
             "error": error_message
         }
     
     def _normalize_persona(self, persona: dict) -> dict:
-        """Ensures all fields exist and have the correct type"""
+        """Ensure all fields exist and have correct types"""
         template = {
             "persona_name": "",
             "age_range": "",
@@ -42,28 +42,23 @@ class PersonaAgent:
             "buying_triggers": "",
             "objections": "",
             "language_and_tone": "",
-            "recommended_channels": [],      # <-- FIX
+            "recommended_channels": [],
             "summary": ""
         }
 
-        # Insert defaults in missing fields
         for key, default in template.items():
             persona.setdefault(key, default)
 
-        # Normalisation of recommended channels
+        # recommended_channels normalization
         if isinstance(persona["recommended_channels"], str):
             persona["recommended_channels"] = [persona["recommended_channels"]]
-
-        if persona["recommended_channels"] is None:
+        elif persona["recommended_channels"] is None:
             persona["recommended_channels"] = []
 
         return persona
 
     def generate_persona(self, product_text: str, market_text: str = None) -> dict:
-        """
-        Creates a full persona profile for the given product and the market.
-        Then automatically saves it to the vector database.
-        """
+        """Generate persona and store in vector database"""
         prompt = f"""
         You are a SENIOR MARKETING PERSONA MODELLER.
         Based on the product description below,
@@ -104,14 +99,12 @@ class PersonaAgent:
             logger.error("PersonaAgent: empty LLM response.")
             return self._fallback_persona("Empty LLM response")
 
-        # Try to parse JSON
         try:
             json_response = json.loads(response)
         except json.JSONDecodeError:
             logger.error("PersonaAgent: Invalid JSON. Using fallback.")
             return self._fallback_persona("Invalid JSON response from agent.")
 
-        # Normalize fields
         json_response = self._normalize_persona(json_response)
 
         # Store in vector DB
