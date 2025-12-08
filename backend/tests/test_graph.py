@@ -6,5 +6,5 @@ def test_graph_runs(graph_app):
     assert "plan" in result
     assert "reasoning" in result
     assert "agent_output" in result
-    
+
     assert isinstance(result["plan"], dict)
