@@ -21,7 +21,7 @@ def test_search_docs_returns_formatted_results(agent):
 
         results = agent.search_docs("some query", top_k=2)
 
-        mock_search.assert_called_once_with("some query", top_k=2)
+        mock_search.assert_called_once_with("some query", k=2)
 
         # Check result format
         assert isinstance(results, list)
