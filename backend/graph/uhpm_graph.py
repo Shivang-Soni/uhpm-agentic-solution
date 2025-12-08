@@ -13,6 +13,7 @@ from agents.persona_agent import PersonaAgent
 from agents.content_agent import ContentAgent
 from agents.experiment_agent import ExperimentationAgent
 from agents.analytics_agent import AnalyticsAgent
+from agents.retriever_agent import RetrieverAgent
 
 from vectorstore.store import add_document
 
@@ -30,8 +31,10 @@ class GraphState(TypedDict, total=False):
 
 
 # Agent initialisation
+retriever = RetrieverAgent()
+
 planner_agent = PlannerAgent()
-reasoner = ReasonerAgent()
+reasoner = ReasonerAgent(retriever)
 research_agent = ResearchAgent()
 persona_agent = PersonaAgent()
 content_agent = ContentAgent()
@@ -96,11 +99,12 @@ def write_memory_node(state: GraphState):
     payload = {
         "task": state.get("task"),
         "plan": state.get("plan"),
-        "reason": state.get("reasoning"),
-        "output": state.get("agent_output")
+        "reasoning": state.get("reasoning"),
+        "agent_output": state.get("agent_output")
     }
 
     add_document(str(payload))
+    memory.save(payload)
 
     logger.info("[memory_node] Completed")
     return state
@@ -120,4 +124,4 @@ def create_uhpm_graph():
     graph.add_edge("dispatch", "memory")
     graph.add_edge("memory", END)
 
-    return graph.compile(checkpointer=memory)
+    return graph.compile(checkpointer=None)

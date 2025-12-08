@@ -41,7 +41,7 @@ class ReasonerAgent:
         - personas
         - ideal customer
         - segmentation
-        - buyer insights  
+        - buyer insights
         → classify it as: "persona"
         → action: "call_persona_agent"
         → inputs_needed: ["product_text", "market_text"]
