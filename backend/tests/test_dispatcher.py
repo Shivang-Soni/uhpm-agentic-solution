@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 from backend.agents.dispatcher import Dispatcher
 
+
 @pytest.fixture
 def mock_agents():
     """
@@ -28,7 +29,7 @@ def dispatcher(mock_agents):
         content_agent=mock_agents["content_agent"],
         experiment_agent=mock_agents["experiment_agent"],
         analytics_agent=mock_agents["analytics_agent"]
-        )
+    )
 
 
 def test_dispatch_research_agent(dispatcher, mock_agents):
@@ -39,7 +40,7 @@ def test_dispatch_research_agent(dispatcher, mock_agents):
         "task_type": "research",
         "action": "call_research_agent",
         "inputs_needed": ["product_text"]
-        }
+    }
     
     user_payload = {
         "product_text": "Some Product"
@@ -47,7 +48,7 @@ def test_dispatch_research_agent(dispatcher, mock_agents):
 
     mock_agents["research_agent"].analyse_product.return_value = {
         "insights": "good"
-        }
+    }
 
     result = dispatcher.run({}, reason_output, user_payload)
 
@@ -55,7 +56,7 @@ def test_dispatch_research_agent(dispatcher, mock_agents):
     assert result["result"] == {"insights": "good"}
     mock_agents["research_agent"].analyse_product.assert_called_once_with(
         product_text="Some Product",
-        competitor_text=None
+        competitor_text=""
     )
 
 
@@ -83,7 +84,7 @@ def test_dispatch_unknown_action(dispatcher):
     """
     reason_output = {
         "task_type": "unknown",
-        "action": "call_unkown_agent",
+        "action": "call_unknown_agent",
         "inputs_needed": []
     }
     user_payload = {}
@@ -92,3 +93,24 @@ def test_dispatch_unknown_action(dispatcher):
 
     assert result["status"] == "unknown_action"
     assert result["action"] == "call_unknown_agent"
+
+
+def test_dispatch_agent_error(dispatcher, mock_agents):
+    """
+    Test Dispatcher returns 'agent_error' if an agent raises Exception.
+    """
+    reason_output = {
+        "task_type": "research",
+        "action": "call_research_agent",
+        "inputs_needed": ["product_text"]
+    }
+    user_payload = {
+        "product_text": "Some Product"
+    }
+
+    mock_agents["research_agent"].analyse_product.side_effect = Exception("Crash!")
+
+    result = dispatcher.run({}, reason_output, user_payload)
+
+    assert result["status"] == "agent_error"
+    assert "Crash!" in result["error"]

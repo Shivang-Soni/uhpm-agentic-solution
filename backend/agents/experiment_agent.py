@@ -26,7 +26,7 @@ class ExperimentationAgent:
         """
 
         prompt = f"""
-        You are an AI MARKETING EXPERIMENT EVAULATOR.
+        You are an AI MARKETING EXPERIMENT EVALUATOR.
         Score each content variant from 0 to 100 based on:
 
         - Fit to Persona
@@ -67,23 +67,23 @@ class ExperimentationAgent:
 
         # JSON Parsing
         try:
-            result = json.loads(response)
-        except json.JSONDecodeError:
+            results = json.loads(response)  # immer results definieren
+            if not isinstance(results, list):
+                raise ValueError("Expected list of variants")
+        except Exception:
             logger.error("Agent did not return valid JSON. Wrapping fallback.")
             results = [{"variant": v, "score": 0, "reason": "invalid JSON"} for v in variants]
 
+        # Normalize scores
         for r in results:
             try:
-                r["score"] = min(max(int(r["score"]), 0), 100)
+                r["score"] = min(max(int(r.get("score", 0)), 0), 100)
             except Exception:
                 r["score"] = 0
 
-        results_sorted = sorted(
-            results,
-            key=lambda x: x["score"],
-            reverse=True
-            )
-        best_result = results_sorted[0]
+        results_sorted = sorted(results, key=lambda x: x["score"], reverse=True)
+        best_result = results_sorted[0] if results_sorted else None
+
         # Save experiment vectors into the Vectordb
         add_document(
             str(results_sorted),
@@ -95,6 +95,7 @@ class ExperimentationAgent:
         )
 
         logger.info("Experiment results stored successfully.")
+
         return {
             "persona": persona_text,
             "channel": channel,
