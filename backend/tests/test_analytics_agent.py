@@ -1,6 +1,6 @@
 import json
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from backend.agents.analytics_agent import AnalyticsAgent
 
@@ -19,9 +19,9 @@ def test_campaign_success(agent):
         "next_steps": ["A/B test"]
     }
 
-    with patch("backend.agents.analytics_agent.invoke", return_value=json.dumps(fake_json)) \
-        as mock_invoke, \
-            patch("backend.agents.analytics_agent.add_document") as mock_add:
+    with patch("backend.agents.analytics_agent.invoke", return_value=json.dumps(fake_json)) as mock_invoke, \
+         patch("backend.agents.analytics_agent.add_document") as mock_add:
+
         result = agent.analyse_campaign("test data")
 
         assert result == fake_json
@@ -37,6 +37,9 @@ def test_analyse_campaign_no_response(agent):
         assert result["error"] == "No response from Agent"
         assert result["summary"] == ""
         assert isinstance(result["persona_changes"], list)
+        assert isinstance(result["content_improvements"], list)
+        assert isinstance(result["channel_recommendations"], list)
+        assert isinstance(result["next_steps"], list)
 
 
 def test_analyse_campaign_invalid_json(agent):
@@ -46,4 +49,7 @@ def test_analyse_campaign_invalid_json(agent):
 
         assert result["error"] == "Invalid JSON from Agent"
         assert result["summary"] == ""
+        assert isinstance(result["persona_changes"], list)
         assert isinstance(result["content_improvements"], list)
+        assert isinstance(result["channel_recommendations"], list)
+        assert isinstance(result["next_steps"], list)
