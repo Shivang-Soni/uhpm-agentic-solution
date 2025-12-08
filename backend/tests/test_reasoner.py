@@ -14,7 +14,7 @@ def test_decide_return_dict(mock_invoke, agent):
     mock_invoke.return_value = """
     {
     "task_type": "research",
-    "reasoning": "ok,
+    "reasoning": "ok",
     "action": "call_research_agent",
     "inputs_needed": []
     }
@@ -25,7 +25,7 @@ def test_decide_return_dict(mock_invoke, agent):
     assert isinstance(result, dict)
 
 
-@patch("agents.reasoner.invoke")
+@patch("backend.agents.reasoner.invoke")
 def test_decide_contains_required_keys(mock_invoke, agent):
     mock_invoke.return_value = """
     {
