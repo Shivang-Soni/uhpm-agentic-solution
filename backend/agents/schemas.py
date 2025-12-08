@@ -9,5 +9,4 @@ class PlannerOutput(BaseModel):
     needs_content: bool
     needs_experimentation: bool
     needs_analytics: bool
-    additional_content: Optional[str]
-
+    additional_context: Optional[str] = None

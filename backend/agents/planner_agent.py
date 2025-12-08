@@ -4,25 +4,15 @@ import json
 from llm.gemini_pipeline import invoke
 from agents.schemas import PlannerOutput
 
-# Logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class PlannerAgent:
-    """
-    LLM-driven planner that converts the user's raw request
-    into a structured plan for the multi-agent pipeline.
-    """
-
     def __init__(self):
         pass
 
     def plan(self, user_task: str) -> dict:
-        """
-        Uses the LLM to classify the task and decide which agents are needed.
-        """
-
         prompt = f"""
         You are the Planner Agent of an ULTRA HIGH PERFORMANCE MARKETING AI
         SYSTEM.
@@ -54,9 +44,7 @@ class PlannerAgent:
         response = invoke(prompt)
 
         if not response:
-            logger.error(
-                "PlannerAgent returned no response. Using fallback plan."
-                )
+            logger.error("PlannerAgent returned no response. Using fallback plan.")
             return PlannerOutput(
                 task=user_task,
                 needs_research=True,
@@ -65,15 +53,13 @@ class PlannerAgent:
                 needs_experimentation=False,
                 needs_analytics=False,
                 additional_context="Fallback: No agent response"
-            )
+            ).model_dump()
 
         try:
             parsed = json.loads(response)
         except Exception as e:
             logger.error(f"PlannerAgent failed to JSON parse: {e}")
             logger.error(f"Raw Agent response: {response}")
-
-            # Fallback if JSON fails
             return PlannerOutput(
                 task=user_task,
                 needs_research=True,
@@ -82,15 +68,12 @@ class PlannerAgent:
                 needs_experimentation=False,
                 needs_analytics=False,
                 additional_context="Invalid JSON, fallback used."
-            )
-        
-        # Pydantic validation
+            ).model_dump()
+
         try:
             plan = PlannerOutput(**parsed)
         except Exception as e:
-            logger.error(
-                "PlannerAgent JSON Structure invalid for PlannerOutput."
-                )
+            logger.error("PlannerAgent JSON Structure invalid for PlannerOutput.")
             logger.error(f"Validation error: {e}")
             logger.error(f"Parsed JSON: {parsed}")
             return PlannerOutput(
@@ -101,7 +84,7 @@ class PlannerAgent:
                 needs_experimentation=False,
                 needs_analytics=False,
                 additional_context="Validation failed, fallback used."
-            )
+            ).model_dump()
 
         logger.info(f"PLANNER PLAN GENERATED: {plan}")
-        return plan
+        return plan.model_dump()
