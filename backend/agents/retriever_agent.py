@@ -33,5 +33,5 @@ class RetrieverAgent:
                     "distance": dist
                 }
             )
-        
+
         return formatted_results
