@@ -93,7 +93,7 @@ def dispatch_node(state: GraphState):
 
 
 def write_memory_node(state: GraphState):
-    """Persist data to vector store."""
+    """Persist data to vector store and memory."""
     logger.info("[memory_node] Start")
 
     payload = {
@@ -110,18 +110,32 @@ def write_memory_node(state: GraphState):
     return state
 
 
-def create_uhpm_graph():
+def create_uhpm_graph(checkpointer=None):
+    """
+    Creates the UHPM LangGraph with optional checkpointing.
+
+    Args:
+        checkpointer: Optional LangGraph checkpointer instance.
+
+    Returns:
+        Compiled graph ready to run.
+    """
     graph = StateGraph(GraphState)
 
+    # Nodes
     graph.add_node("planner", planner_node)
     graph.add_node("reason", reason_node)
     graph.add_node("dispatch", dispatch_node)
     graph.add_node("memory", write_memory_node)
 
+    # Entry point
     graph.set_entry_point("planner")
+
+    # Edges
     graph.add_edge("planner", "reason")
     graph.add_edge("reason", "dispatch")
     graph.add_edge("dispatch", "memory")
     graph.add_edge("memory", END)
 
-    return graph.compile(checkpointer=None)
+    # Compile graph with checkpointer
+    return graph.compile(checkpointer=checkpointer)
