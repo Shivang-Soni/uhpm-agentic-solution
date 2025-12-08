@@ -86,7 +86,7 @@ class ExperimentationAgent:
         best_result = results_sorted[0]
         # Save experiment vectors into the Vectordb
         add_document(
-            str(results_sorted)
+            str(results_sorted),
             metadata={
                 "type": "experiment",
                 "channel": channel,
