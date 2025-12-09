@@ -2,6 +2,8 @@ import asyncio
 import logging
 from typing import Any, Dict
 
+from langgraph.checkpoint.memory import MemorySaver
+
 from graph.uhpm_graph import create_uhpm_graph, GraphState
 
 # Logging setup
@@ -16,7 +18,7 @@ def _get_graph_app():
     global _graph_app
     if _graph_app is None:
         logger.info("Initialising UHPM Langgraph app...")
-        _graph_app = create_uhpm_graph()
+        _graph_app = create_uhpm_graph(checkpointer=MemorySaver())
     return _graph_app
 
 
