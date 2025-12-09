@@ -2,13 +2,13 @@ import pytest
 from unittest.mock import patch
 from backend.graph import runner
 
+
 @pytest.mark.asyncio
 async def test_full_uhpm_graph_integration():
 
     runner._graph_app = None
 
     user_task = "Create a marketing campaign for Product X"
-
 
     fake_plan = {"task_type": "persona", "action": "call_persona_agent"}
     fake_reason = {
@@ -34,7 +34,6 @@ async def test_full_uhpm_graph_integration():
 
         result = await runner.run_graph({"task": user_task}, timeout=10)
 
-  
         assert "plan" in result
         assert "reasoning" in result
         assert "agent_output" in result
