@@ -1,43 +1,43 @@
 import pytest
 from unittest.mock import patch
-import asyncio
-
-from backend.graph.runner import run_graph
-
+from backend.graph import runner
 
 @pytest.mark.asyncio
 async def test_full_uhpm_graph_integration():
-    """
-    Integration test for the full UHPM graph.
-    Simulates a complete marketing task flow.
-    """
 
-    user_task = "Create a marketing campaign for Product X targeting young professionals"
+    runner._graph_app = None
 
-    fake_llm_response = '{"task_type": "persona", "reasoning": "Task requires persona creation", "action": "call_persona_agent", "inputs_needed": ["product_text", "market_text"]}'
-    fake_content_response = '{"text": "Generated marketing content"}'
-    fake_research_response = '{"product_summary": "Summary", "usps": ["USP1"], "target_audience": ["Young professionals"], "competitor_comparision": "Competitor analysis"}'
-    fake_experiment_response = '[{"variant": "Ad1", "score": 80, "reason": "Good fit"}]'
-    fake_analytics_response = '{"summary": "Campaign did well", "persona_changes": [], "content_improvements": [], "channel_recommendations": [], "next_steps": []}'
+    user_task = "Create a marketing campaign for Product X"
 
-    with patch("backend.agents.planner_agent.invoke", return_value=fake_llm_response), \
-         patch("backend.agents.reasoner.invoke", return_value=fake_llm_response), \
-         patch("backend.agents.research_agent.invoke", return_value=fake_research_response), \
-         patch("backend.agents.persona_agent.invoke", return_value=fake_llm_response), \
-         patch("backend.agents.content_agent.invoke", return_value=fake_content_response), \
-         patch("backend.agents.experiment_agent.invoke", return_value=fake_experiment_response), \
-         patch("backend.agents.analytics_agent.invoke", return_value=fake_analytics_response), \
-         patch("backend.vectorstore.store.add_document") as mock_add:
 
-        result = await run_graph({"task": user_task}, timeout=10)
+    fake_plan = {"task_type": "persona", "action": "call_persona_agent"}
+    fake_reason = {
+        "task_type": "persona",
+        "action": "call_persona_agent",
+        "inputs_needed": ["product_text", "market_text"]
+    }
+    fake_research = {"product_summary": "Summary"}
+    fake_persona = {"persona": "Young Professional Persona"}
+    fake_content = {"text": "Marketing Content"}
+    fake_experiment = {"variants": [{"variant": "A", "score": 90}]}
+    fake_analytics = {"summary": "Good campaign"}
 
-        # Basic assertions
+
+    with patch("backend.graph.uhpm_graph.planner_agent.plan", return_value=fake_plan), \
+         patch("backend.graph.uhpm_graph.reasoner.decide", return_value=fake_reason), \
+         patch("backend.graph.uhpm_graph.research_agent.analyse_product", return_value=fake_research), \
+         patch("backend.graph.uhpm_graph.persona_agent.generate_persona", return_value=fake_persona), \
+         patch("backend.graph.uhpm_graph.content_agent.generate_content", return_value=fake_content), \
+         patch("backend.graph.uhpm_graph.experiment_agent.score_variants", return_value=fake_experiment), \
+         patch("backend.graph.uhpm_graph.analytics_agent.analyse_campaign", return_value=fake_analytics), \
+         patch("vectorstore.store.add_document") as mock_add:
+
+        result = await runner.run_graph({"task": user_task}, timeout=10)
+
+  
         assert "plan" in result
         assert "reasoning" in result
         assert "agent_output" in result
-
-        # Ensure Memory node ran
-        mock_add.assert_called()
-
-        # Check that agent_output contains at least one key
         assert isinstance(result["agent_output"], dict)
+
+        mock_add.assert_called_once()
