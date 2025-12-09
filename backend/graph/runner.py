@@ -22,7 +22,9 @@ def _get_graph_app():
     return _graph_app
 
 
-async def run_graph(input_dict: Dict[str, Any], timeout: int = 60) -> Dict[str, Any]:
+async def run_graph(
+        input_dict: Dict[str, Any],
+        timeout: int = 60) -> Dict[str, Any]:
     """
     Runs the UHPM Langgraph pipeline asynchronously with a timeout.
 
