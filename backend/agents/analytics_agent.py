@@ -4,52 +4,36 @@ from typing import Dict, Any
 
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
+from schemas import AnalyticsOutput
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-EXPECTED_SCHEMA = {
-    "summary": str,
-    "persona_changes": list,
-    "content_improvements": list,
-    "channel_recommendations": list,
-    "next_steps": list,
-}
-
-
 class AnalyticsAgent:
     """
-    Analyses performance results and generates structured, actionable insights.
+    Analyses performance results and produces structured optimisation insights.
     """
 
-    def __init__(self):
-        pass
-
     def analyse_campaign(
-        self,
-        campaign_results: str | Dict[str, Any]
-    ) -> Dict[str, Any]:
+            self,
+            campaign_results: str | Dict[str, Any]
+            ) -> Dict[str, Any]:
         """
-        Analyse performance metrics (CTR, conversions, CPL, ROAS etc.)
-        and return fully validated structured insights.
+        Analyse campaign performance
+          and return structured optimisation suggestions.
 
         Args:
-            campaign_results: Raw dict or text summary of the results.
+            campaign_results: dict or string description of performance.
 
         Returns:
-            JSON dict following EXACT schema:
-                summary: str
-                persona_changes: list[str]
-                content_improvements: list[str]
-                channel_recommendations: list[str]
-                next_steps: list[str]
+            A dict matching EXACTLY the AnalyticsOutput schema.
         """
 
         prompt = f"""
 You are a SENIOR PERFORMANCE MARKETING OPTIMISATION ENGINE.
 
-Analyse the following campaign results and return ONLY a **valid JSON object**
+Analyse the following campaign results and return ONLY a valid JSON object
 matching EXACTLY this schema:
 
 {{
@@ -60,87 +44,74 @@ matching EXACTLY this schema:
   "next_steps": ["string", ...]
 }}
 
-Rules:
-- Output ONLY valid JSON.
-- No explanations, prose, markdown, or surrounding text.
-- All fields must be actionable.
-- Never leave fields empty.
-        
+RULES:
+- Output ONLY raw JSON.
+- NO text outside the JSON object.
+- NEVER leave any field empty.
+- If information is missing, infer the most likely optimisation.
+
 Campaign Results:
 {campaign_results}
 """
 
+        # 1. LLM Invocation
         response = invoke(prompt)
-
         if not response:
-            logger.warning("AnalyticsAgent: No LLM response. Using fallback.")
-            return self._fallback("No LLM response")
+            logger.warning(
+                "AnalyticsAgent: Empty LLM response. Using fallback."
+                )
+            return self._fallback("LLM returned empty response")
 
-        # Parse JSON
+        # 2. Parse JSON
         try:
             parsed = json.loads(response)
-        except json.JSONDecodeError:
-            logger.error("AnalyticsAgent: Invalid JSON. Using fallback.")
-            parsed = self._fallback("JSON parsing error")
+        except Exception as e:
+            logger.error(f"AnalyticsAgent: JSON parse failed: {e}")
+            return self._fallback("Invalid JSON returned by LLM")
 
-        validated = self._validate_response(parsed)
+        # 3. Validate schema
+        try:
+            model = AnalyticsOutput(**parsed)
+            validated = model.model_dump()
+        except Exception as e:
+            logger.error(f"AnalyticsAgent: Schema validation failed: {e}")
+            return self._fallback("Schema validation error")
 
-        # Persist to vectorstore
+        # 4. Store in vector DB
         try:
             add_document(
                 json.dumps(validated),
-                metadata={"type": "analytics", "source": "campaign_feedback"}
+                metadata={"type": "analytics", "source": "campaign_feedback"},
             )
         except Exception as e:
-            logger.error(f"Failed to store analytics insights: {e}")
+            logger.error(
+                f"AnalyticsAgent: Failed to store analytics insights: {e}"
+                )
 
         return validated
 
-    # --------------------------
-    # Validation & fallback
-    # --------------------------
-
-    def _validate_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _fallback(self, reason: str) -> Dict[str, Any]:
         """
-        Ensures all required fields exist, have correct types,
-        and replaces invalid values with fallbacks.
+        Deterministic fallback structure ensuring nothing breaks.
         """
+        logger.warning(f"AnalyticsAgent fallback triggered: {reason}")
 
-        validated = {}
-
-        for key, expected_type in EXPECTED_SCHEMA.items():
-            value = data.get(key)
-
-            # Missing key
-            if value is None:
-                validated[key] = self._default_value(expected_type)
-                continue
-
-            # Wrong type
-            if not isinstance(value, expected_type):
-                validated[key] = self._default_value(expected_type)
-                continue
-
-            validated[key] = value
-
-        return validated
-
-    def _fallback(self, error_msg: str) -> Dict[str, Any]:
-        """
-        Fallback JSON in case LLM fails fully.
-        """
         return {
-            "summary": f"Analytics unavailable: {error_msg}",
-            "persona_changes": [],
-            "content_improvements": [],
-            "channel_recommendations": [],
-            "next_steps": [],
+            "summary": f"Analytics unavailable: {reason}. \
+              Providing generic improvements.",
+            "persona_changes": [
+                "Clarify primary customer motivation.",
+                "Refine demographic focus for precision targeting."
+            ],
+            "content_improvements": [
+                "Improve clarity of value proposition.",
+                "Strengthen opening hook to increase attention.",
+            ],
+            "channel_recommendations": [
+                "Focus on WhatsApp + Meta high-intent placements."
+            ],
+            "next_steps": [
+                "Collect more granular performance metrics.",
+                "Test 2–3 more creative or offer variations."
+            ],
         }
-
-    @staticmethod
-    def _default_value(expected_type):
-        if expected_type is str:
-            return ""
-        if expected_type is list:
-            return []
-        return None
