@@ -10,3 +10,11 @@ class PlannerOutput(BaseModel):
     needs_experimentation: bool
     needs_analytics: bool
     additional_context: Optional[str] = None
+
+
+class AnalyticsOutput(BaseModel):
+    summary: str
+    persona_changes: list
+    content_improvements: list
+    channel_recommendation: list
+    next_steps: list
