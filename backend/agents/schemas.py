@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PlannerOutput(BaseModel):
