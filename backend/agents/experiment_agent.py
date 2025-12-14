@@ -67,7 +67,7 @@ class ExperimentationAgent:
 
         # JSON Parsing
         try:
-            results = json.loads(response)  # immer results definieren
+            results = json.loads(response)
             if not isinstance(results, list):
                 raise ValueError("Expected list of variants")
         except Exception:
