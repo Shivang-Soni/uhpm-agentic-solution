@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
-from schemas import AnalyticsOutput
+from agents.schemas import AnalyticsOutput, CampaignPerformance
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class AnalyticsAgent:
 
     def analyse_campaign(
             self,
-            campaign_results: str | Dict[str, Any]
+            campaign_results: CampaignPerformance | str | Dict[str, Any]
             ) -> Dict[str, Any]:
         """
         Analyse campaign performance
@@ -29,6 +29,11 @@ class AnalyticsAgent:
         Returns:
             A dict matching EXACTLY the AnalyticsOutput schema.
         """
+
+        if isinstance(campaign_results, CampaignPerformance):
+            campaign_data = campaign_results.model_dump()
+        else:
+            campaign_data = campaign_results
 
         prompt = f"""
 You are a SENIOR PERFORMANCE MARKETING OPTIMISATION ENGINE.
@@ -51,7 +56,7 @@ RULES:
 - If information is missing, infer the most likely optimisation.
 
 Campaign Results:
-{campaign_results}
+{json.dumps(campaign_data, indent=2)}
 """
 
         # 1. LLM Invocation
