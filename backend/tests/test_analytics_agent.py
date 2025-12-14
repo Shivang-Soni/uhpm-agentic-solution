@@ -2,7 +2,8 @@ import json
 import pytest
 from unittest.mock import patch
 
-from backend.agents.analytics_agent import AnalyticsAgent
+from agents.analytics_agent import AnalyticsAgent
+from agents.schemas import AnalyticsOutput
 
 
 @pytest.fixture
@@ -10,46 +11,61 @@ def agent():
     return AnalyticsAgent()
 
 
-def test_campaign_success(agent):
+def test_analyse_campaign_success(agent):
     fake_json = {
-        "summary": "good",
-        "persona_changes": ["more_detail"],
-        "content_improvements": ["improve CTA"],
+        "summary": "Campaign performed well",
+        "persona_changes": ["Focus more on price-sensitive users"],
+        "content_improvements": ["Improve CTA clarity"],
         "channel_recommendations": ["TikTok"],
-        "next_steps": ["A/B test"]
+        "next_steps": ["Run A/B test"]
     }
 
-    with patch("backend.agents.analytics_agent.invoke", return_value=json.dumps(fake_json)) as mock_invoke, \
-         patch("backend.agents.analytics_agent.add_document") as mock_add:
+    with patch(
+        "backend.agents.analytics_agent.invoke",
+        return_value=json.dumps(fake_json)
+    ), patch(
+        "backend.agents.analytics_agent.add_document"
+    ) as mock_add:
 
         result = agent.analyse_campaign("test data")
 
-        assert result == fake_json
-        mock_invoke.assert_called_once()
+        # Schema-level correctness
+        validated = AnalyticsOutput(**result)
+        assert validated.summary == "Campaign performed well"
+        assert "TikTok" in validated.channel_recommendations
+
+        # Side-effect check
         mock_add.assert_called_once()
 
 
-def test_analyse_campaign_no_response(agent):
-    with patch("backend.agents.analytics_agent.invoke", return_value=None):
-
+def test_analyse_campaign_empty_llm_response(agent):
+    with patch(
+        "backend.agents.analytics_agent.invoke",
+        return_value=None
+    ):
         result = agent.analyse_campaign("test data")
 
-        assert result["error"] == "No response from Agent"
-        assert result["summary"] == ""
-        assert isinstance(result["persona_changes"], list)
-        assert isinstance(result["content_improvements"], list)
-        assert isinstance(result["channel_recommendations"], list)
-        assert isinstance(result["next_steps"], list)
+        # Still valid schema
+        validated = AnalyticsOutput(**result)
+
+        assert "Analytics unavailable" in validated.summary
+        assert len(validated.persona_changes) > 0
+        assert len(validated.content_improvements) > 0
+        assert len(validated.channel_recommendations) > 0
+        assert len(validated.next_steps) > 0
 
 
 def test_analyse_campaign_invalid_json(agent):
-    with patch("backend.agents.analytics_agent.invoke", return_value="NOT JSON"):
-
+    with patch(
+        "backend.agents.analytics_agent.invoke",
+        return_value="NOT JSON"
+    ):
         result = agent.analyse_campaign("test data")
 
-        assert result["error"] == "Invalid JSON from Agent"
-        assert result["summary"] == ""
-        assert isinstance(result["persona_changes"], list)
-        assert isinstance(result["content_improvements"], list)
-        assert isinstance(result["channel_recommendations"], list)
-        assert isinstance(result["next_steps"], list)
+        validated = AnalyticsOutput(**result)
+
+        assert "Analytics unavailable" in validated.summary
+        assert isinstance(validated.persona_changes, list)
+        assert isinstance(validated.content_improvements, list)
+        assert isinstance(validated.channel_recommendations, list)
+        assert isinstance(validated.next_steps, list)

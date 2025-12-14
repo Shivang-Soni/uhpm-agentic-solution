@@ -17,7 +17,7 @@ class AnalyticsOutput(BaseModel):
     summary: str
     persona_changes: list
     content_improvements: list
-    channel_recommendation: list
+    channel_recommendations: list
     next_steps: list
 
 
