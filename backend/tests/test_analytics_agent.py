@@ -21,10 +21,10 @@ def test_analyse_campaign_success(agent):
     }
 
     with patch(
-        "backend.agents.analytics_agent.invoke",
+        "agents.analytics_agent.invoke",
         return_value=json.dumps(fake_json)
     ), patch(
-        "backend.agents.analytics_agent.add_document"
+        "agents.analytics_agent.add_document"
     ) as mock_add:
 
         result = agent.analyse_campaign("test data")
@@ -40,7 +40,7 @@ def test_analyse_campaign_success(agent):
 
 def test_analyse_campaign_empty_llm_response(agent):
     with patch(
-        "backend.agents.analytics_agent.invoke",
+        "agents.analytics_agent.invoke",
         return_value=None
     ):
         result = agent.analyse_campaign("test data")
@@ -57,7 +57,7 @@ def test_analyse_campaign_empty_llm_response(agent):
 
 def test_analyse_campaign_invalid_json(agent):
     with patch(
-        "backend.agents.analytics_agent.invoke",
+        "agents.analytics_agent.invoke",
         return_value="NOT JSON"
     ):
         result = agent.analyse_campaign("test data")
