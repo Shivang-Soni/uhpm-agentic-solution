@@ -37,3 +37,13 @@ class ContentOutput(BaseModel):
     tone: Optional[str] = ""
     variants: List[ContentVariant] = Field(default_factory=list)
     metadata: Optional[Dict[str, Any]] = None
+
+
+class CampaignPerformance(BaseModel):
+    channel: str = Field(..., description="Marketing channel name")
+    spend: float = Field(..., ge=0)
+    impressions: int = Field(..., ge=0)
+    clicks: int = Field(..., ge=0)
+    ctr: float = Field(..., ge=0)
+    conversions: Optional[int] = Field(default=0, ge=0)
+    cpa: Optional[float] = Field(default=None, ge=0)
