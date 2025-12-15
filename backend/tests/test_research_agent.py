@@ -19,8 +19,11 @@ def test_analyse_product_valid_json(agent):
     }
     """
 
-    with patch("backend.agents.research_agent.invoke", return_value=fake_response) as mock_invoke, \
-         patch("backend.agents.research_agent.add_document") as mock_add:
+    with patch(
+        "backend.agents.research_agent.invoke",
+        return_value=fake_response
+        ) as mock_invoke, \
+            patch("backend.agents.research_agent.add_document") as mock_add:
 
         result = agent.analyse_product("A", "B")
 
