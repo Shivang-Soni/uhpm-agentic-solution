@@ -44,7 +44,9 @@ class PlannerAgent:
         response = invoke(prompt)
 
         if not response:
-            logger.error("PlannerAgent returned no response. Using fallback plan.")
+            logger.error(
+                "PlannerAgent returned no response. Using fallback plan."
+                )
             return PlannerOutput(
                 task=user_task,
                 needs_research=True,
@@ -73,7 +75,9 @@ class PlannerAgent:
         try:
             plan = PlannerOutput(**parsed)
         except Exception as e:
-            logger.error("PlannerAgent JSON Structure invalid for PlannerOutput.")
+            logger.error(
+                "PlannerAgent JSON Structure invalid for PlannerOutput."
+                )
             logger.error(f"Validation error: {e}")
             logger.error(f"Parsed JSON: {parsed}")
             return PlannerOutput(
