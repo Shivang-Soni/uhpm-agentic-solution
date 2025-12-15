@@ -16,8 +16,10 @@ def test_search_docs_returns_formatted_results(agent):
         "distances": [0.1, 0.2]
     }
 
-    with patch("backend.agents.retriever_agent.search", return_value=mock_search_return) \
-            as mock_search:
+    with patch(
+        "backend.agents.retriever_agent.search",
+        return_value=mock_search_return
+            ) as mock_search:
 
         results = agent.search_docs("some query", top_k=2)
 
@@ -38,7 +40,10 @@ def test_search_docs_empty_results(agent):
     # Mock empty search result
     mock_search_return = {"documents": [], "metadatas": [], "distances": []}
 
-    with patch("backend.agents.retriever_agent.search", return_value=mock_search_return):
+    with patch(
+        "backend.agents.retriever_agent.search",
+        return_value=mock_search_return
+            ):
         results = agent.search_docs("empty query")
 
         assert results == []
