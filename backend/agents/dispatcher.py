@@ -17,6 +17,7 @@ class Dispatcher:
     ACTION_STATUS_MAP = {
         "call_research_agent": ("research_done", "research"),
         "call_whatsapp_agent": ("whatsapp_messages_generated", "whatsapp"),
+        "call_google_ads_agent": ("google_ads_campaign_generated", "google_ads")
     }
 
     def __init__(
@@ -26,7 +27,10 @@ class Dispatcher:
         content_agent,
         experiment_agent,
         analytics_agent,
-        whatsapp_agent
+        whatsapp_agent,
+        googleads_agent,
+        metaads_agent,
+        email_agent
     ):
         self.research_agent = research_agent
         self.persona_agent = persona_agent
@@ -34,6 +38,9 @@ class Dispatcher:
         self.experiment_agent = experiment_agent
         self.analytics_agent = analytics_agent
         self.whatsapp_agent = whatsapp_agent
+        self.googleads_agent = googleads_agent
+        self.metaads_agent = metaads_agent
+        self.email_agent = email_agent
 
     def run(
         self,
@@ -42,7 +49,7 @@ class Dispatcher:
         user_payload: Dict[str, Any]
     ):
         action = reason_output.get("action")
-        inputs_needed = reason_output.get("inputs_needed", [])
+        inputs_needed = reason_output.get("inputs_needed", {})
 
         # Normalize inputs_needed
         if isinstance(inputs_needed, dict):
@@ -60,7 +67,7 @@ class Dispatcher:
                 agent="dispatcher",
                 data={
                     "missing_inputs": missing_inputs,
-                    "required": required_inputs
+                    "required": inputs_needed
                 },
                 plan=plan
             )
@@ -73,13 +80,7 @@ class Dispatcher:
                     competitor_text=user_payload.get("competitor_text")
                 )
                 status, agent = self.ACTION_STATUS_MAP[action]
-
-                return self._build_output(
-                    status=status,
-                    agent=agent,
-                    data=result,
-                    plan=plan
-                )
+                return self._build_output(status, agent, result, plan)
 
             # WhatsApp
             if action == "call_whatsapp_agent":
@@ -90,15 +91,19 @@ class Dispatcher:
                     tone=user_payload.get("tone", "friendly")
                 )
                 status, agent = self.ACTION_STATUS_MAP[action]
+                return self._build_output(status, agent, result, plan)
 
-                return self._build_output(
-                    status=status,
-                    agent=agent,
-                    data=result,
-                    plan=plan
+            # Google Ads
+            if action == "call_google_ads_agent":
+                result = self.googleads_agent.generate_campaign(
+                    product_text=user_payload.get("product_text", ""),
+                    persona_text=user_payload.get("persona_text", ""),
+                    campaign_budget=user_payload.get("campaign_budget", ""),
+                    tone=user_payload.get("tone", "neutral")
                 )
+                status, agent = self.ACTION_STATUS_MAP[action]
+                return self._build_output(status, agent, result, plan)
 
-            # ---- Unknown ----
             return self._build_output(
                 status="unknown_action",
                 agent="dispatcher",
