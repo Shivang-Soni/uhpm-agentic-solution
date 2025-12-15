@@ -16,13 +16,15 @@ class Dispatcher:
         persona_agent,
         content_agent,
         experiment_agent,
-        analytics_agent
+        analytics_agent,
+        whatsapp_agent
     ):
         self.research_agent = research_agent
         self.persona_agent = persona_agent
         self.content_agent = content_agent
         self.experiment_agent = experiment_agent
         self.analytics_agent = analytics_agent
+        self.whatsapp_agent = whatsapp_agent
 
     def run(
         self,
@@ -66,6 +68,19 @@ class Dispatcher:
                     data=result,
                     plan=plan
                 )
+            elif action == "call_whatsapp_agent":
+                result = self.whatsapp_agent.generate_messages(
+                    product_text=user_payload.get("product_text", ""),
+                    persona_text=user_payload.get("persona_text", ""),
+                    intent=user_payload.get('intent', "lead"),
+                    tone=user_payload.get("tone", "friendly")
+                )
+                return self._build_output(
+                    status="Whatsapp images generated",
+                    agent="whatsapp",
+                    data=result,
+                    plan=plan
+                )
 
             return self._build_output(
                 status="unknown_action",
@@ -73,6 +88,7 @@ class Dispatcher:
                 data={"action": action},
                 plan=plan
             )
+        
 
         except Exception as e:
             logger.error(f"[Dispatcher] Agent crashed: {e}")
