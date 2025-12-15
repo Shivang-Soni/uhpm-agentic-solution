@@ -18,8 +18,11 @@ def test_score_variants_valid_response(agent):
     ]
     """
 
-    with patch("backend.agents.experiment_agent.invoke", return_value=fake_response) as mock_invoke, \
-        patch("backend.agents.experiment_agent.add_document") as mock_add:
+    with patch(
+        "backend.agents.experiment_agent.invoke",
+        return_value=fake_response
+        ) as mock_invoke, \
+            patch("backend.agents.experiment_agent.add_document") as mock_add:
 
         result = agent.score_variants("Persona X", "email", ["A", "B"])
 
@@ -33,13 +36,18 @@ def test_score_variants_valid_response(agent):
 
 
 def test_score_variants_invalid_json(agent):
-    with patch("backend.agents.experiment_agent.invoke", return_value="NOT_JSON"), \
+    with patch(
+        "backend.agents.experiment_agent.invoke",
+        return_value="NOT_JSON"
+        ), \
             patch("backend.agents.experiment_agent.add_document") as mock_add:
 
         result = agent.score_variants("Persona X", "social media", ["X", "Y"])
 
         assert result["best_variant"]["score"] == 0
-        assert all(isinstance(v["score"], int) for v in result["variants_scored"])
+        assert all(
+            isinstance(v["score"], int) for v in result["variants_scored"]
+            )
         mock_add.assert_called_once()
 
 
