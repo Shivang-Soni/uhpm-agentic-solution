@@ -57,6 +57,24 @@ class ReasonerAgent:
             "tone": "optional tone of voice"
         }}
 
+        Meta Ads:
+        - Meta / Facebook Ads campaigns
+        → task_type: "channel"
+        → action: "call_meta_ads_agent"
+        → inputs_needed: {{"product_text": "description of product", "persona_text": "persona for campaign", "campaign_budget": "budget allocation"}}
+
+        Google Ads:
+        - Google / Search Ads
+        → task_type: "channel"
+        → action: "call_google_ads_agent"
+        → inputs_needed: {{"product_text": "description of product", "persona_text": "persona for campaign", "campaign_budget": "budget allocation"}}
+
+        E-Mail Marketing:
+        - Email campaigns, templates
+        → task_type: "channel"
+        → action: "call_email_agent"
+        → inputs_needed: {{"product_text": "description of product", "persona_text": "persona for campaign", "email_template": "base template to use"}}
+
         Other task types:
         - research   → call_research_agent
         - analysis   → call_analysis_agent
