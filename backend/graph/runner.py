@@ -3,7 +3,6 @@ import logging
 from typing import Any, Dict
 
 from langgraph.checkpoint.memory import MemorySaver
-
 from graph.uhpm_graph import create_uhpm_graph, GraphState
 
 # Logging setup
@@ -29,22 +28,25 @@ async def run_graph(
     Runs the UHPM Langgraph pipeline asynchronously with a timeout.
 
     Args:
-    - input_dict
-    - timeout
+        input_dict: Dict containing at least the 'task' key.
+        timeout: Timeout in seconds.
 
     Returns:
-    - The final Langgraph state as a plain dict.
+        The final Langgraph state as a plain dict.
     """
     if "task" not in input_dict:
         raise ValueError("Missing required field 'task'")
+
     app = _get_graph_app()
 
-    # ensure GraphState shape
+    # Ensure GraphState shape
     state = GraphState(input_dict)
 
-    # run graph with a timeout
     try:
-        coro = app.ainvoke(state)
+        coro = app.ainvoke(
+            state,
+            config={"configurable": {"thread_id": "test-run"}}
+        )
         result_state = await asyncio.wait_for(coro, timeout=timeout)
     except asyncio.TimeoutError:
         logger.error("Graph execution timed out")

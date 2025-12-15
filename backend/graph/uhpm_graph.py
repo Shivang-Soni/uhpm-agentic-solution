@@ -26,7 +26,6 @@ class GraphState(TypedDict, total=False):
     """
     Shared state between nodes.
     """
-    configurable: dict
     task: str
     plan: dict | Any
     reasoning: dict | str | Any
@@ -59,7 +58,6 @@ def planner_node(state: GraphState):
     """Generate structured plan via PlannerAgent."""
     logger.info("[planner_node] Start")
 
-    state.setdefault("configurable", {})
     user_task = state.get("task", "")
 
     plan_obj = planner_agent.plan(user_task)
