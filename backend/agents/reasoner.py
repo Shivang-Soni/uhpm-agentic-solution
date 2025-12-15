@@ -49,6 +49,14 @@ class ReasonerAgent:
             "product_text": "description of the product",
             "market_text": "market or customer context"
         }}
+        If the task involves:
+        - WhatsApp
+        - follow-up
+        - message
+        - chat
+        → task_type: "channel"
+        → action: "call_whatsapp_agent"
+        → inputs_needed: ["product_text", "persona_text"]
 
         Other task types:
         - research   → call_research_agent

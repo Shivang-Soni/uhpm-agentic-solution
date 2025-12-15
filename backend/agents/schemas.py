@@ -54,3 +54,10 @@ class DispatcherOutput(BaseModel):
     agent: str
     data: Dict[str, Any]
     plan: Dict[str, Any]
+
+
+class WhatsappAgentOutput(BaseModel):
+    initial_message: str
+    follow_up_message: str
+    closing_message: str
+    error: str
