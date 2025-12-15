@@ -18,7 +18,9 @@ class PersonaAgent:
         pass
 
     def _fallback_persona(self, error_message: str) -> dict:
-        """Return minimal persona structure if LLM fails or response is invalid"""
+        """
+        Return minimal persona structure if LLM fails or response is invalid
+        """
         return {
             "persona_name": "",
             "age_range": "",
@@ -64,7 +66,9 @@ class PersonaAgent:
 
         return persona
 
-    def generate_persona(self, product_text: str, market_text: str = None) -> dict:
+    def generate_persona(
+            self, product_text: str, market_text: str = None
+            ) -> dict:
         """Generate persona JSON and store in vectorstore"""
         prompt = f"""
         You are a SENIOR MARKETING PERSONA MODELLER.
@@ -115,7 +119,11 @@ class PersonaAgent:
         try:
             add_document(
                 json.dumps(json_response),
-                metadata={"type": "persona", "product_text": product_text, "agent": "persona_agent"}
+                metadata={
+                    "type": "persona",
+                    "product_text": product_text,
+                    "agent": "persona_agent"
+                    }
             )
             logger.info("PersonaAgent: persona successfully stored")
         except Exception as e:
