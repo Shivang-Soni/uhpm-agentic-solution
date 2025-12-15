@@ -14,6 +14,7 @@ from agents.content_agent import ContentAgent
 from agents.experiment_agent import ExperimentationAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.retriever_agent import RetrieverAgent
+from agents.whatsapp_agent import WhatsappAgent
 
 from vectorstore.store import add_document
 
@@ -42,13 +43,15 @@ persona_agent = PersonaAgent()
 content_agent = ContentAgent()
 experiment_agent = ExperimentationAgent()
 analytics_agent = AnalyticsAgent()
+whatsapp_agent = WhatsappAgent()
 
 dispatcher = Dispatcher(
     research_agent,
     persona_agent,
     content_agent,
     experiment_agent,
-    analytics_agent
+    analytics_agent,
+    whatsapp_agent
 )
 
 memory = MemorySaver()
