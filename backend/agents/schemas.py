@@ -61,3 +61,11 @@ class WhatsappAgentOutput(BaseModel):
     follow_up_message: str
     closing_message: str
     error: str
+
+
+class GoogleAdsAgentOutput(BaseModel):
+    headline: str
+    description: str
+    keywords: list
+    daily_budget_estimate: str
+    landing_page_angle: str
