@@ -36,7 +36,10 @@ def test_analyse_product_valid_json(agent):
 
 
 def test_analyse_product_invalid_json(agent):
-    with patch("backend.agents.research_agent.invoke", return_value="NOT_JSON"):
+    with patch(
+        "backend.agents.research_agent.invoke",
+        return_value="NOT_JSON"
+        ):
 
         result = agent.analyse_product("X", "Y")
 
