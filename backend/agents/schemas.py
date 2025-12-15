@@ -47,3 +47,10 @@ class CampaignPerformance(BaseModel):
     ctr: float = Field(..., ge=0)
     conversions: Optional[int] = Field(default=0, ge=0)
     cpa: Optional[float] = Field(default=None, ge=0)
+
+
+class DispatcherOutput(BaseModel):
+    status: str
+    agent: str
+    data: Dict[str, Any]
+    plan: Dict[str, Any]
