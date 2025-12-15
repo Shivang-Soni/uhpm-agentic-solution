@@ -5,6 +5,7 @@ from backend.agents.persona_agent import PersonaAgent
 
 @pytest.fixture
 def agent():
+    # Return a fresh PersonaAgent instance for each test
     return PersonaAgent()
 
 
@@ -25,13 +26,16 @@ def test_generate_persona_valid_json(agent):
     }
     """
 
-    with patch("backend.agents.persona_agent.invoke", return_value=fake_response) as mock_invoke, \
-         patch("backend.agents.persona_agent.add_document") as mock_add:
+    with patch(
+        "backend.agents.persona_agent.invoke", return_value=fake_response
+        ) as mock_invoke, patch("backend.agents.persona_agent.add_document") \
+            as mock_add:
 
         result = agent.generate_persona("Product X")
 
         assert result["persona_name"] == "Tech Tom"
         assert result["recommended_channels"] == ["LinkedIn", "YouTube"]
+
         mock_invoke.assert_called_once()
         mock_add.assert_called_once()
 
