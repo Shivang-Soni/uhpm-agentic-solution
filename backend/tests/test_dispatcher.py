@@ -131,7 +131,7 @@ def test_dispatch_whatsapp_agent(dispatcher, mock_agents):
 
     result = dispatcher.run({}, reason_output, user_payload)
 
-    assert result["status"] == "whatsapp_messages_generated"
+    assert result["status"] == "whatsapp messages generated"
     assert result["agent"] == "whatsapp"
     assert "initial_message" in result["data"]
 
