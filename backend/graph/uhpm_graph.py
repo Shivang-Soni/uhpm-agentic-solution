@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 class GraphState(TypedDict, total=False):
-    """Shared state between nodes."""
+    """
+    Shared state between nodes.
+    """
+    configurable: dict
     task: str
-    plan: dict | str | Any
+    plan: dict | Any
     reasoning: dict | str | Any
     agent_output: dict | str | Any
 
@@ -55,10 +58,12 @@ memory = MemorySaver()
 def planner_node(state: GraphState):
     """Generate structured plan via PlannerAgent."""
     logger.info("[planner_node] Start")
+
+    state.setdefault("configurable", {})
     user_task = state.get("task", "")
 
     plan_obj = planner_agent.plan(user_task)
-    state["plan"] = plan_obj if isinstance(plan_obj, dict) else plan_obj.dict()
+    state["plan"] = plan_obj
 
     logger.info("[planner_node] Completed")
     return state
@@ -68,8 +73,8 @@ def reason_node(state: GraphState):
     """Run reasoning step."""
     logger.info("[reason_node] Start")
 
-    plan_dict = state.get("plan", {})
-    reasoning = reasoner.decide(plan_dict)
+    user_task = state.get("task", "")
+    reasoning = reasoner.decide(user_task)
     state["reasoning"] = reasoning
 
     logger.info("[reason_node] Completed")
@@ -103,8 +108,20 @@ def write_memory_node(state: GraphState):
         "agent_output": state.get("agent_output")
     }
 
-    add_document(str(payload))
-    memory.save(payload)
+    agent_output = state.get("agent_output", {})
+
+    has_error = (
+        isinstance(agent_output, dict)
+        and "error" in agent_output
+    )
+
+    add_document(
+                text=str(payload),
+                metadata={
+                    "type": "graph_run",
+                    "has_error": has_error
+                }
+                )
 
     logger.info("[memory_node] Completed")
     return state
