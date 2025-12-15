@@ -36,6 +36,8 @@ class Dispatcher:
 
         if isinstance(inputs_needed, dict):
             required_inputs = list(inputs_needed.keys())
+        elif isinstance(inputs_needed, (list, set, tuple)):
+            required_inputs = list(inputs_needed)
         else:
             required_inputs = []
 
