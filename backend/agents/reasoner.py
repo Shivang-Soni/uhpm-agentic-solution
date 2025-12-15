@@ -11,13 +11,12 @@ logger = logging.getLogger(__name__)
 
 class ReasonerAgent:
     """
-    ReasonerAgent: Classifies the user input and gives back a JSON dictionary.
-    Includes:
-    - retrieval lookup
-    - Decides which agent to call
-    - classification
-    - fallback JSON repair
-    - validation
+    ReasonerAgent: Classifies the user input and returns a structured JSON dictionary.
+    Responsibilities:
+    - Retrieval lookup (optional)
+    - Task type classification
+    - Agent selection
+    - JSON validation & fallback
     """
     def __init__(self, retriever):
         self.max_retries = 2
@@ -27,21 +26,17 @@ class ReasonerAgent:
         return f"""
         You are the CORE REASONING AGENT of an advanced marketing AI system.
 
-        Your responsibilities:
+        Responsibilities:
         - Analyze the user's request
         - Use retrieved memory context
-        - Decide what type of task this is
-        - Identify the correct subsystem (agent) to call
-        - Determine what inputs are needed for the next action
-        - ALWAYS return a VALID JSON OBJECT. Never return text outside JSON
-        - NEVER EXPLAIN
+        - Decide the task_type
+        - Select the agent to call
+        - Determine required inputs
+        - ALWAYS return valid JSON ONLY. NEVER EXPLAIN.
 
-      === Classification Rules ===
+        === Classification Rules ===
         Persona related:
-        - target audience
-        - personas
-        - ideal customer
-        - segmentation
+        - target audience, personas, segmentation
         → task_type: "persona"
         → action: "call_persona_agent"
         → inputs_needed:
@@ -49,23 +44,24 @@ class ReasonerAgent:
             "product_text": "description of the product",
             "market_text": "market or customer context"
         }}
-       If the task is about:
-        - WhatsApp
-        - chat messages
-        - follow-up messages
-        - customer replies
-        - broadcast messages
-        → classify it as: "channel"
-        → action: "call_whatsapp_agent"
-        → inputs_needed: ["product_text", "persona_text"]
 
+        WhatsApp / Messaging related:
+        - WhatsApp messages, follow-ups, broadcasts
+        → task_type: "content"
+        → action: "call_whatsapp_agent"
+        → inputs_needed:
+        {{
+            "product_text": "needed to describe the product or service",
+            "persona_text": "needed to adapt tone and messaging",
+            "intent": "optional goal of the message",
+            "tone": "optional tone of voice"
+        }}
 
         Other task types:
         - research   → call_research_agent
         - analysis   → call_analysis_agent
         - content    → call_content_agent
         - experiment → call_experiment_agent
-
 
         === INPUT ===
         User request:
@@ -80,15 +76,15 @@ class ReasonerAgent:
           "reasoning": "short justification",
           "action": "agent action name",
           "inputs_needed": {{
-          "input_name": "why this input is required"
+            "input_name": "why this input is required"
           }}
         }}
         """
 
     def _fallback_prompt(self, raw_text: str) -> str:
         return f"""
-        The previous response was not valid JSON. Convert the following text
-        into VALID JSON with fields:
+        Previous response was not valid JSON.
+        Convert the following into VALID JSON with fields:
         task_type, reasoning, action, inputs_needed.
         Return ONLY JSON - NEVER EXPLAIN.
 
@@ -97,10 +93,6 @@ class ReasonerAgent:
         """
 
     def _try_parse(self, text: str) -> Optional[Dict[str, Any]]:
-        """
-        Tries to parse JSON and returns Dict when successful,
-        otherwise None
-        """
         try:
             data = json.loads(text)
             required = {"task_type", "reasoning", "action", "inputs_needed"}
@@ -127,14 +119,12 @@ class ReasonerAgent:
 
     def decide(self, user_task: str):
         """
-        Core reasoning entrypoint.
-        Returns a structured decision JSON for Dispatcher.
+        Main reasoning entrypoint.
+        Returns structured JSON for Dispatcher.
         """
-
         logger.info("Starting reasoning process.")
 
         retrieved = {}
-
         if self.retriever is not None:
             try:
                 retrieved = self.retriever.search_docs(user_task)
@@ -143,7 +133,6 @@ class ReasonerAgent:
                 retrieved = {}
 
         prompt = self._build_prompt(user_task, retrieved)
-
         response = invoke(prompt)
 
         if not response:
@@ -156,7 +145,6 @@ class ReasonerAgent:
             return parsed
 
         logger.warning("Initial parse failed - requesting JSON-only fallback from Agent")
-
         fallback = self._fallback_prompt(response)
         updated_response = invoke(fallback)
 
