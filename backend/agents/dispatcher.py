@@ -1,6 +1,8 @@
 import logging
 from typing import Dict, Any
 
+from agents.adapters.channel_adapter_registry import ChannelAdapterRegistry
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -13,7 +15,8 @@ class Dispatcher:
         content_agent=None,
         experiment_agent=None,
         analytics_agent=None,
-        campaign_agent=None
+        campaign_agent=None,
+        channel_adapter_registry: ChannelAdapterRegistry | None = None
     ):
         self.research_agent = research_agent
         self.persona_agent = persona_agent
@@ -21,6 +24,9 @@ class Dispatcher:
         self.experiment_agent = experiment_agent
         self.analytics_agent = analytics_agent
         self.campaign_agent = campaign_agent
+        self.channel_adapter_registry = channel_adapter_registry or \
+            ChannelAdapterRegistry()
+
     def run(
         self,
         state: Dict[str, Any],
@@ -84,7 +90,7 @@ class Dispatcher:
                 }
 
             # Content
-            if action == "call_content_agent":
+            elif action == "call_content_agent":
                 result = self.content_agent.generate_content(
                     product_text=user_payload.get("product_text"),
                     persona_text=user_payload.get("persona_text"),
@@ -99,7 +105,7 @@ class Dispatcher:
                 }
 
             # Campaign Agent
-            if action == "call_campaign_agent":
+            elif action == "call_campaign_agent":
                 result = self.campaign_agent.generate(
                     product_text=user_payload.get("product_text"),
                     persona_text=user_payload.get("persona_text"),
@@ -115,14 +121,45 @@ class Dispatcher:
                     "data": result,
                     "plan": plan
                 }
+            
+            elif action == "preview_campaign":
+                channel = user_payload.get("channel")
+                artifacts = user_payload.get("artifacts")
+
+                adapter = self.channel_adapter_registry.get(channel)
+                preview = adapter.preview(artifacts)
+
+                return {
+                    "status": "campaign_preview_ready",
+                    "agent": "dispatcher",
+                    "channel": channel,
+                    "data": preview,
+                    "plan": plan
+                }
+
+            elif action == "publish_campaign":
+                channel = user_payload.get("channel")
+                artifacts = user_payload.get("artifacts")
+
+                adapter = self.channel_adapter_registry.get(channel)
+                result = adapter.publish(artifacts)
+
+                return {
+                    "status": "campaign_published",
+                    "agent": "dispatcher",
+                    "channel": channel,
+                    "data": result,
+                    "plan": plan
+                }
 
             # Unknown
-            return {
-                "status": "unknown_action",
-                "agent": "dispatcher",
-                "data": {"action": action},
-                "plan": plan,
-            }
+            else:
+                return {
+                    "status": "unknown_action",
+                    "agent": "dispatcher",
+                    "data": {"action": action},
+                    "plan": plan,
+                }
 
         except Exception as e:
             logger.exception("Dispatcher caught agent error")
