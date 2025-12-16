@@ -10,11 +10,11 @@ class BaseChannelAdapter:
     - Publishing through API calles
     """
 
-    def validate(self, artifact: Dict[str, Any]) -> bool:
+    def validate(self, artifacts: Dict[str, Any]) -> bool:
         pass
 
     def preview(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
-    def publish(self, artifact: Dict[str, Any]) -> Dict[str, Any]:
+    def publish(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         pass
