@@ -13,21 +13,14 @@ class Dispatcher:
         content_agent=None,
         experiment_agent=None,
         analytics_agent=None,
-        whatsapp_agent=None,
-        google_ads_agent=None,
-        meta_ads_agent=None,
-        email_agent=None,
+        campaign_agent=None
     ):
         self.research_agent = research_agent
         self.persona_agent = persona_agent
         self.content_agent = content_agent
         self.experiment_agent = experiment_agent
         self.analytics_agent = analytics_agent
-        self.whatsapp_agent = whatsapp_agent
-        self.google_ads_agent = google_ads_agent
-        self.meta_ads_agent = meta_ads_agent
-        self.email_agent = email_agent
-
+        self.campaign_agent = campaign_agent
     def run(
         self,
         state: Dict[str, Any],
@@ -105,64 +98,22 @@ class Dispatcher:
                     "plan": plan,
                 }
 
-            # WhatsApp
-            if action == "call_whatsapp_agent":
-                result = self.whatsapp_agent.generate_messages(
+            # Campaign Agent
+            if action == "call_campaign_agent":
+                result = self.campaign_agent.generate(
                     product_text=user_payload.get("product_text"),
                     persona_text=user_payload.get("persona_text"),
-                    intent=user_payload.get("intent"),
+                    channel=user_payload.get("channel"),
+                    budget=user_payload.get("budget"),
                     tone=user_payload.get("tone"),
+                    intent=user_payload.get("intent")
                 )
                 return {
-                    "status": "whatsapp_messages_generated",
-                    "agent": "whatsapp",
+                    "status": "campaign_generated",
+                    "agent": "campaign",
+                    "channel": user_payload.get("channel"),
                     "data": result,
-                    "plan": plan,
-                }
-
-            # Google Ads
-            if action == "call_google_ads_agent":
-                result = self.google_ads_agent.generate_campaign(
-                    product_text=user_payload.get("product_text"),
-                    persona_text=user_payload.get("persona_text"),
-                    campaign_budget=user_payload.get("campaign_budget"),
-                    tone=user_payload.get("tone"),
-                )
-                return {
-                    "status": "google_ads_generated",
-                    "agent": "google_ads",
-                    "data": result,
-                    "plan": plan,
-                }
-
-            # Meta Ads
-            if action == "call_meta_ads_agent":
-                result = self.meta_ads_agent.generate_campaign(
-                    product_text=user_payload.get("product_text"),
-                    persona_text=user_payload.get("persona_text"),
-                    campaign_budget=user_payload.get("campaign_budget"),
-                    tone=user_payload.get("tone"),
-                )
-                return {
-                    "status": "meta_ads_generated",
-                    "agent": "meta_ads",
-                    "data": result,
-                    "plan": plan,
-                }
-
-            # Email
-            if action == "call_email_agent":
-                result = self.email_agent.generate_campaign(
-                    product_text=user_payload.get("product_text"),
-                    persona_text=user_payload.get("persona_text"),
-                    email_template=user_payload.get("email_template"),
-                    tone=user_payload.get("tone"),
-                )
-                return {
-                    "status": "email_campaign_generated",
-                    "agent": "email",
-                    "data": result,
-                    "plan": plan,
+                    "plan": plan
                 }
 
             # Unknown
