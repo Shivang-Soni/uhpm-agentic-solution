@@ -72,7 +72,7 @@ class GoogleAdsAgentOutput(BaseModel):
 
 
 class EmailAgentOutput(BaseModel):
-    subject: str
+    subject_line: str
     body: str
     tone: str
 
