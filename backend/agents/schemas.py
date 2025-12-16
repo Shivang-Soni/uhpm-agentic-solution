@@ -69,3 +69,17 @@ class GoogleAdsAgentOutput(BaseModel):
     keywords: list
     daily_budget_estimate: str
     landing_page_angle: str
+
+
+class EmailAgentOutput(BaseModel):
+    subject: str
+    body: str
+    tone: str
+
+
+class MetaAdsAgentOutput(BaseModel):
+    platform: str
+    headline: str
+    persona:  str
+    budget: str
+    tone: str
