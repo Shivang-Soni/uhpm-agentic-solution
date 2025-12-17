@@ -1,48 +1,38 @@
-import logging
-from typing import Dict
-from agents.adapters.base_channel_adapter import BaseChannelAdapter
-from agents.adapters.google_ads_adapter import GoogleAdsAdapter
-from agents.adapters.meta_ads_adapter import MetaAdsAdapter
-from agents.adapters.email_adapter import EmailAdapter
-from agents.adapters.whatsapp_adapter import WhatsappAdapter
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from typing import Dict, Any
+from agents.adapters.channel_adapter_registry import ChannelAdapterRegistry
 
 
-class ChannelAdapterRegistry:
+class ChannelAdapterDispatcher:
     """
-    Central registry mapping channel identifiers to their adapter instances.
+    Dispatches campaign artifacts to the correct channel adapter.
+    Handles validation and forwards to preview/publish methods.
     """
 
-    def __init__(self):
-        # Register default adapters
-        self._adapters: Dict[str, BaseChannelAdapter] = {
-            "google_ads": GoogleAdsAdapter(),
-            "meta_ads": MetaAdsAdapter(),
-            "whatsapp": WhatsappAdapter(),
-            "email": EmailAdapter(),
-        }
+    def __init__(self, registry: ChannelAdapterRegistry):
+        self.registry = registry
 
-    def get(self, channel: str) -> BaseChannelAdapter:
+    def preview(self, channel: str, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Retrieve the adapter for a given channel.
+        Validate and preview artifacts for the given channel.
         """
-        if not channel:
-            raise ValueError("Channel must be provided")
+        adapter = self.registry.get(channel)
 
-        normalized_channel = channel.lower().strip()
-        adapter = self._adapters.get(normalized_channel)
+        if not adapter.validate(artifacts):
+            raise ValueError(
+                f"Validation failed for channel '{channel}' with artifacts: {artifacts}"
+            )
 
-        if not adapter:
-            logger.error(f"No adapter registered for channel: {normalized_channel}")
-            raise ValueError(f"No adapter registered for channel: {normalized_channel}")
+        return adapter.preview(artifacts)
 
-        logger.info(f"Resolved adapter for channel: {normalized_channel}")
-        return adapter
-
-    def list_channels(self) -> list[str]:
+    def publish(self, channel: str, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Return a list of all registered channel names.
+        Validate and publish artifacts for the given channel.
         """
-        return list(self._adapters.keys())
+        adapter = self.registry.get(channel)
+
+        if not adapter.validate(artifacts):
+            raise ValueError(
+                f"Validation failed for channel '{channel}' with artifacts: {artifacts}"
+            )
+
+        return adapter.publish(artifacts)
