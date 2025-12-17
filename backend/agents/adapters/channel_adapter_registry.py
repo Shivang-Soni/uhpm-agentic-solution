@@ -1,6 +1,5 @@
 import logging
 from typing import Dict
-
 from agents.adapters.base_channel_adapter import BaseChannelAdapter
 from agents.adapters.google_ads_adapter import GoogleAdsAdapter
 from agents.adapters.meta_ads_adapter import MetaAdsAdapter
@@ -8,48 +7,42 @@ from agents.adapters.email_adapter import EmailAdapter
 from agents.adapters.whatsapp_adapter import WhatsappAdapter
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class ChannelAdapterRegistry:
     """
-    Central registry mapping channel identifiers to channel adapters.
+    Central registry mapping channel identifiers to their adapter instances.
     """
 
     def __init__(self):
-        self._adapters: Dict[str, BaseChannelAdapter] = {}
-        self._register_defaults()
-
-    def _register_defaults(self):
-        self.register("google_ads", GoogleAdsAdapter())
-        self.register("meta_ads", MetaAdsAdapter())
-        self.register("whatsapp", WhatsappAdapter())
-        self.register("email", EmailAdapter())
-
-    def register(self, channel: str, adapter: BaseChannelAdapter):
-        if not channel:
-            raise ValueError("Channel name must be provided")
-
-        if not isinstance(adapter, BaseChannelAdapter):
-            raise TypeError("Adapter must extend BaseChannelAdapter")
-
-        normalized = channel.lower().strip()
-        self._adapters[normalized] = adapter
-
-        logger.info(f"Registered channel adapter: {normalized}")
+        # Register default adapters
+        self._adapters: Dict[str, BaseChannelAdapter] = {
+            "google_ads": GoogleAdsAdapter(),
+            "meta_ads": MetaAdsAdapter(),
+            "whatsapp": WhatsappAdapter(),
+            "email": EmailAdapter(),
+        }
 
     def get(self, channel: str) -> BaseChannelAdapter:
+        """
+        Retrieve the adapter for a given channel.
+        """
         if not channel:
             raise ValueError("Channel must be provided")
 
-        normalized = channel.lower().strip()
-        adapter = self._adapters.get(normalized)
+        normalized_channel = channel.lower().strip()
+        adapter = self._adapters.get(normalized_channel)
 
         if not adapter:
-            logger.error(f"No adapter registered for channel: {normalized}")
-            raise ValueError(f"No adapter registered for channel: {normalized}")
+            logger.error(f"No adapter registered for channel: {normalized_channel}")
+            raise ValueError(f"No adapter registered for channel: {normalized_channel}")
 
-        logger.info(f"Resolved adapter for channel: {normalized}")
+        logger.info(f"Resolved adapter for channel: {normalized_channel}")
         return adapter
 
     def list_channels(self) -> list[str]:
+        """
+        Return a list of all registered channel names.
+        """
         return list(self._adapters.keys())
