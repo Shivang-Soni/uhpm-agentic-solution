@@ -12,36 +12,43 @@ logger = logging.getLogger(__name__)
 
 class ChannelAdapterRegistry:
     """
-    Central registry mapping channel identifiers to adapters.
+    Central registry mapping channel identifiers to channel adapters.
     """
 
     def __init__(self):
-        self._adapters: Dict[str, BaseChannelAdapter] = {
-            "google_ads": GoogleAdsAdapter(),
-            "meta_ads": MetaAdsAdapter(),
-            "whatsapp": WhatsappAdapter(),
-            "email": EmailAdapter(),
-        }
+        self._adapters: Dict[str, BaseChannelAdapter] = {}
+        self._register_defaults()
+
+    def _register_defaults(self):
+        self.register("google_ads", GoogleAdsAdapter())
+        self.register("meta_ads", MetaAdsAdapter())
+        self.register("whatsapp", WhatsappAdapter())
+        self.register("email", EmailAdapter())
+
+    def register(self, channel: str, adapter: BaseChannelAdapter):
+        if not channel:
+            raise ValueError("Channel name must be provided")
+
+        if not isinstance(adapter, BaseChannelAdapter):
+            raise TypeError("Adapter must extend BaseChannelAdapter")
+
+        normalized = channel.lower().strip()
+        self._adapters[normalized] = adapter
+
+        logger.info(f"Registered channel adapter: {normalized}")
 
     def get(self, channel: str) -> BaseChannelAdapter:
         if not channel:
             raise ValueError("Channel must be provided")
 
-        normalized_channel = channel.lower().strip()
-
-        adapter = self._adapters.get(normalized_channel)
+        normalized = channel.lower().strip()
+        adapter = self._adapters.get(normalized)
 
         if not adapter:
-            logger.error(
-                f"No adapter registered for channel: {normalized_channel}"
-                )
-            raise ValueError(
-                f"No adapter registered for channel: {normalized_channel}"
-                )
+            logger.error(f"No adapter registered for channel: {normalized}")
+            raise ValueError(f"No adapter registered for channel: {normalized}")
 
-        logger.info(
-            f"Resolved adapter for channel: {normalized_channel}"
-            )
+        logger.info(f"Resolved adapter for channel: {normalized}")
         return adapter
 
     def list_channels(self) -> list[str]:
