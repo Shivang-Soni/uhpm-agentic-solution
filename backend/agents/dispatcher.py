@@ -24,23 +24,26 @@ class Dispatcher:
         self.experiment_agent = experiment_agent
         self.analytics_agent = analytics_agent
         self.campaign_agent = campaign_agent
-        self.channel_adapter_registry = channel_adapter_registry or \
-            ChannelAdapterRegistry()
+        self.channel_adapter_registry = (
+            channel_adapter_registry or ChannelAdapterRegistry()
+        )
 
     def run(
         self,
-        state: Dict[str, Any],
         reason_output: Dict[str, Any],
-        user_payload: Dict[str, Any],
-        plan: Dict[str, Any] | None = None,
+        user_payload: Dict[str, Any]
     ) -> Dict[str, Any]:
-
-        plan = plan or {}
+        """
+        Deterministic dispatcher.
+        Routes execution strictly based on reason_output["action"].
+        """
 
         action = reason_output.get("action")
-        inputs_needed = reason_output.get("inputs_needed", {})
+        inputs_needed = reason_output.get("inputs_needed", [])
 
-        # required vs optional inputs
+        logger.info(f"[Dispatcher] Received action: {action}")
+
+        # Normalize required inputs
         if isinstance(inputs_needed, dict):
             required_inputs = [
                 k for k, v in inputs_needed.items() if v == "required"
@@ -49,20 +52,18 @@ class Dispatcher:
             required_inputs = list(inputs_needed)
 
         missing_inputs = [
-            key for key in required_inputs if key not in user_payload
+            key for key in required_inputs
+            if key not in user_payload or user_payload.get(key) is None
         ]
 
         if missing_inputs:
             return {
                 "status": "waiting_for_inputs",
                 "agent": "dispatcher",
-                "data": {"missing_inputs": missing_inputs},
-                "plan": plan,
+                "data": {"missing_inputs": missing_inputs}
             }
 
         try:
-            logger.info(f"[Dispatcher] Executing action: {action}")
-
             # Research
             if action == "call_research_agent":
                 result = self.research_agent.analyse_product(
@@ -72,12 +73,11 @@ class Dispatcher:
                 return {
                     "status": "research_done",
                     "agent": "research",
-                    "data": result,
-                    "plan": plan,
+                    "data": result
                 }
 
             # Persona
-            if action == "call_persona_agent":
+            elif action == "call_persona_agent":
                 result = self.persona_agent.build_persona(
                     product_text=user_payload.get("product_text"),
                     research_insights=user_payload.get("research_insights"),
@@ -85,8 +85,7 @@ class Dispatcher:
                 return {
                     "status": "persona_created",
                     "agent": "persona",
-                    "data": result,
-                    "plan": plan,
+                    "data": result
                 }
 
             # Content
@@ -100,11 +99,10 @@ class Dispatcher:
                 return {
                     "status": "content_generated",
                     "agent": "content",
-                    "data": result,
-                    "plan": plan,
+                    "data": result
                 }
 
-            # Campaign Agent
+            # Campaign
             elif action == "call_campaign_agent":
                 result = self.campaign_agent.generate(
                     product_text=user_payload.get("product_text"),
@@ -112,16 +110,16 @@ class Dispatcher:
                     channel=user_payload.get("channel"),
                     budget=user_payload.get("budget"),
                     tone=user_payload.get("tone"),
-                    intent=user_payload.get("intent")
+                    intent=user_payload.get("intent"),
                 )
                 return {
                     "status": "campaign_generated",
                     "agent": "campaign",
                     "channel": user_payload.get("channel"),
-                    "data": result,
-                    "plan": plan
+                    "data": result
                 }
-            
+
+            # Preview
             elif action == "preview_campaign":
                 channel = user_payload.get("channel")
                 artifacts = user_payload.get("artifacts")
@@ -133,10 +131,10 @@ class Dispatcher:
                     "status": "campaign_preview_ready",
                     "agent": "dispatcher",
                     "channel": channel,
-                    "data": preview,
-                    "plan": plan
+                    "data": preview
                 }
 
+            # Publish
             elif action == "publish_campaign":
                 channel = user_payload.get("channel")
                 artifacts = user_payload.get("artifacts")
@@ -148,8 +146,7 @@ class Dispatcher:
                     "status": "campaign_published",
                     "agent": "dispatcher",
                     "channel": channel,
-                    "data": result,
-                    "plan": plan
+                    "data": result
                 }
 
             # Unknown
@@ -157,15 +154,13 @@ class Dispatcher:
                 return {
                     "status": "unknown_action",
                     "agent": "dispatcher",
-                    "data": {"action": action},
-                    "plan": plan,
+                    "data": {"action": action}
                 }
 
         except Exception as e:
-            logger.exception("Dispatcher caught agent error")
+            logger.exception("[Dispatcher] Agent execution failed")
             return {
                 "status": "agent_error",
                 "agent": "dispatcher",
-                "data": {"error": str(e)},
-                "plan": plan,
+                "data": {"error": str(e)}
             }
