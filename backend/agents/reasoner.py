@@ -40,10 +40,7 @@ class ReasonerAgent:
         self.retriever = retriever
         self.max_retries = 2
 
-    # ------------------------------------------------------------------
     # Prompt
-    # ------------------------------------------------------------------
-
     def _build_prompt(self, user_task: str, retrieved: Any) -> str:
         return f"""
 You are a routing engine inside a marketing automation system.
