@@ -8,8 +8,13 @@ logger = logging.getLogger(__name__)
 
 class ChannelAdapterDispatcher:
     """
-    Routes artifacts to the correct channel adapter
-    and enforces validation + safe execution.
+    Central dispatcher for all channel adapters.
+
+    Responsibilities:
+    - Resolve adapter by channel
+    - Enforce adapter capabilities
+    - Execute preview or publish safely
+    - Normalize execution responses
     """
 
     def __init__(self, registry: ChannelAdapterRegistry):
@@ -22,17 +27,28 @@ class ChannelAdapterDispatcher:
     ) -> Dict[str, Any]:
         adapter = self.registry.get(channel)
 
-        if not adapter.validate(artifacts):
-            logger.error(
-                f"[ChannelAdapterDispatcher] Validation failed | "
-                f"channel={channel} artifacts={artifacts}"
-            )
-            raise ValueError(f"Invalid artifacts for channel '{channel}'")
-
         logger.info(
-            f"[ChannelAdapterDispatcher] Preview generated | channel={channel}"
+            f"[ChannelAdapterDispatcher] Preview request | channel={channel}"
         )
-        return adapter.preview(artifacts)
+
+        try:
+            result = adapter.safe_preview(artifacts)
+
+            return {
+                "status": "preview_ready",
+                "channel": channel,
+                "data": result,
+            }
+
+        except Exception as e:
+            logger.exception(
+                f"[ChannelAdapterDispatcher] Preview failed | channel={channel}"
+            )
+            return {
+                "status": "preview_failed",
+                "channel": channel,
+                "error": str(e),
+            }
 
     def publish(
         self,
@@ -41,14 +57,25 @@ class ChannelAdapterDispatcher:
     ) -> Dict[str, Any]:
         adapter = self.registry.get(channel)
 
-        if not adapter.validate(artifacts):
-            logger.error(
-                f"[ChannelAdapterDispatcher] Validation failed | "
-                f"channel={channel} artifacts={artifacts}"
-            )
-            raise ValueError(f"Invalid artifacts for channel '{channel}'")
-
         logger.info(
-            f"[ChannelAdapterDispatcher] Publishing campaign | channel={channel}"
+            f"[ChannelAdapterDispatcher] Publish request | channel={channel}"
         )
-        return adapter.publish(artifacts)
+
+        try:
+            result = adapter.safe_publish(artifacts)
+
+            return {
+                "status": "published",
+                "channel": channel,
+                "data": result,
+            }
+
+        except Exception as e:
+            logger.exception(
+                f"[ChannelAdapterDispatcher] Publish failed | channel={channel}"
+            )
+            return {
+                "status": "publish_failed",
+                "channel": channel,
+                "error": str(e),
+            }

@@ -1,38 +1,40 @@
-from typing import Dict, Any
-from agents.adapters.channel_adapter_registry import ChannelAdapterRegistry
+import logging
+from typing import Dict
+
+from agents.adapters.base_channel_adapter import BaseChannelAdapter
+from agents.adapters.google_ads_adapter import GoogleAdsAdapter
+from agents.adapters.meta_ads_adapter import MetaAdsAdapter
+from agents.adapters.email_adapter import EmailAdapter
+from agents.adapters.whatsapp_adapter import WhatsappAdapter
+
+logger = logging.getLogger(__name__)
 
 
-class ChannelAdapterDispatcher:
+class ChannelAdapterRegistry:
     """
-    Dispatches campaign artifacts to the correct channel adapter.
-    Handles validation and forwards to preview/publish methods.
+    Central registry mapping channel identifiers to adapters.
     """
 
-    def __init__(self, registry: ChannelAdapterRegistry):
-        self.registry = registry
+    def __init__(self):
+        self._adapters: Dict[str, BaseChannelAdapter] = {
+            "google_ads": GoogleAdsAdapter(),
+            "meta_ads": MetaAdsAdapter(),
+            "email": EmailAdapter(),
+            "whatsapp": WhatsappAdapter(),
+        }
 
-    def preview(self, channel: str, artifacts: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate and preview artifacts for the given channel.
-        """
-        adapter = self.registry.get(channel)
+    def get(self, channel: str) -> BaseChannelAdapter:
+        if not channel:
+            raise ValueError("Channel must be provided")
 
-        if not adapter.validate(artifacts):
-            raise ValueError(
-                f"Validation failed for channel '{channel}' with artifacts: {artifacts}"
-            )
+        normalized = channel.lower().strip()
 
-        return adapter.preview(artifacts)
+        adapter = self._adapters.get(normalized)
+        if not adapter:
+            logger.error(f"No adapter registered for channel: {normalized}")
+            raise ValueError(f"No adapter registered for channel: {normalized}")
 
-    def publish(self, channel: str, artifacts: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate and publish artifacts for the given channel.
-        """
-        adapter = self.registry.get(channel)
+        return adapter
 
-        if not adapter.validate(artifacts):
-            raise ValueError(
-                f"Validation failed for channel '{channel}' with artifacts: {artifacts}"
-            )
-
-        return adapter.publish(artifacts)
+    def list_channels(self) -> list[str]:
+        return list(self._adapters.keys())
