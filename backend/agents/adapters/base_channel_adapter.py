@@ -1,42 +1,39 @@
-from abc import ABC, abstractmethod
 from typing import Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-class BaseChannelAdapter(ABC):
+class BaseChannelAdapter:
     """
-    Base class for all channel adapters (WhatsApp, Meta, Google, Email, etc.).
-
+    Base class for all marketing channel adapters.
     Responsibilities:
-    - Validate campaign artifacts
-    - Provide preview-ready output
-    - Publish artifacts via channel-specific APIs
+    - Enforce implementation of validate, preview, and publish methods
+    - Provide optional flags for capabilities
     """
 
-    channel_name: str
+    # Flags to indicate adapter capabilities
+    supports_preview: bool = True
+    supports_publish: bool = True
 
-    @abstractmethod
     def validate(self, artifacts: Dict[str, Any]) -> bool:
         """
-        Validate that the required artifacts for this channel exist
-        and are structurally correct.
-
-        Returns:
-            bool: True if valid, False otherwise
+        Validate the artifact before previewing or publishing.
+        Must be implemented by subclass.
         """
-        pass
+        raise NotImplementedError("validate() must be implemented by subclass")
 
-    @abstractmethod
     def preview(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Transform artifacts into a UI-friendly preview format.
-        Must NOT have side effects.
+        Return a normalized preview of the campaign artifacts.
+        Must be implemented by subclass.
         """
-        pass
+        raise NotImplementedError("preview() must be implemented by subclass")
 
-    @abstractmethod
     def publish(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Publish artifacts to the actual channel.
-        Can be mocked in MVP stage.
+        Publish the campaign artifacts through the actual channel.
+        Must be implemented by subclass.
         """
-        pass
+        raise NotImplementedError("publish() must be implemented by subclass")
