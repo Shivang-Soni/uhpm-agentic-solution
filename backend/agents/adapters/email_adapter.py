@@ -1,56 +1,40 @@
 from typing import Dict, Any
-
 from agents.adapters.base_channel_adapter import BaseChannelAdapter
 from agents.schemas import EmailAgentOutput
 
 
 class EmailAdapter(BaseChannelAdapter):
     """
-    Adapter for Email marketing campaigns.
-    Handles validation, preview formatting, and publishing.
+    Adapter for E-mail marketing campaigns.
     """
-
-    REQUIRED_FIELDS = {"subject_line", "body"}
 
     def validate(self, artifacts: Dict[str, Any]) -> bool:
         """
-        Validate that the email artifact contains all required fields.
+        Validate that the email campaign artifact contains
+        all necessary fields.
         """
-        if not isinstance(artifacts, dict):
-            return False
-
-        missing = self.REQUIRED_FIELDS - artifacts.keys()
-        return len(missing) == 0
+        required_keys = ["subject_line", "body", "tone"]
+        return all(key in artifacts for key in required_keys)
 
     def preview(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
         Return a normalized preview of the email campaign.
         """
-        if not self.validate(artifacts):
-            raise ValueError("Invalid email campaign artifact for preview")
-
-        preview = EmailAgentOutput(
-            subject_line=artifacts.get("subject_line"),
-            body=artifacts.get("body"),
-            tone=artifacts.get("tone", "friendly"),
-            cta=artifacts.get("cta"),
-            footer=artifacts.get("footer"),
-        )
-
-        return preview.model_dump()
+        return EmailAgentOutput(
+            subject_line=artifacts.get("subject_line", ""),
+            body=artifacts.get("body", ""),
+            tone=artifacts.get("tone", "friendly")
+        ).model_dump()
 
     def publish(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Publish the email campaign.
-        Currently mocked — replace with real ESP integration.
+        Call the email API and publish the campaign.
         """
         if not self.validate(artifacts):
-            raise ValueError("Invalid email campaign artifact for publishing")
+            raise ValueError("Invalid email campaign artifact.")
 
-        # TODO: integrate with SendGrid / SES / Mailgun
+        # Mock publish for now
         return {
-            "status": "published",
-            "channel": "email",
-            "provider": "mock",
-            "artifact": artifacts,
+            "status": "published_mock",
+            "artifact": artifacts
         }
