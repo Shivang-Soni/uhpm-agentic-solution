@@ -4,189 +4,168 @@ from typing import Any, Dict, Optional
 
 from llm.gemini_pipeline import invoke
 
-# Set up logger
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
+ALLOWED_ACTIONS = {
+    "call_research_agent",
+    "call_persona_agent",
+    "call_content_agent",
+    "call_campaign_agent",
+    "preview_campaign",
+    "publish_campaign",
+}
+
+ALLOWED_INPUT_KEYS = {
+    "product_text",
+    "competitor_text",
+    "research_insights",
+    "persona_text",
+    "channel",
+    "budget",
+    "tone",
+    "intent",
+    "artifacts",
+}
 
 
 class ReasonerAgent:
     """
-    ReasonerAgent:
-    Classifies the user input and returns a structured JSON dictionary.
-    Responsibilities:
-    - Retrieval lookup (optional)
-    - Task type classification
-    - Agent selection
-    - JSON validation & fallback
+    Determines the next system action in a strictly deterministic way.
+    Produces Dispatcher-compatible JSON only.
     """
-    def __init__(self, retriever):
-        self.max_retries = 2
+
+    def __init__(self, retriever=None):
         self.retriever = retriever
+        self.max_retries = 2
+
+    # ------------------------------------------------------------------
+    # Prompt
+    # ------------------------------------------------------------------
 
     def _build_prompt(self, user_task: str, retrieved: Any) -> str:
         return f"""
-        You are the CORE REASONING AGENT of an advanced marketing AI system.
+You are a routing engine inside a marketing automation system.
 
-        Responsibilities:
-        - Analyze the user's request
-        - Use retrieved memory context
-        - Decide the task_type
-        - Select the agent to call
-        - Determine required inputs
-        - ALWAYS return valid JSON ONLY. NEVER EXPLAIN.
+You MUST return VALID JSON ONLY.
+NO explanations. NO markdown. NO comments.
 
-        === Classification Rules ===
-        Persona related:
-        - target audience, personas, segmentation
-        → task_type: "persona"
-        → action: "call_persona_agent"
-        → inputs_needed:
-        {{
-            "product_text": "description of the product",
-            "market_text": "market or customer context"
-        }}
+Allowed actions:
+- call_research_agent
+- call_persona_agent
+- call_content_agent
+- call_campaign_agent
+- preview_campaign
+- publish_campaign
 
-        WhatsApp / Messaging related:
-        - WhatsApp messages, follow-ups, broadcasts
-        → task_type: "content"
-        → action: "call_whatsapp_agent"
-        → inputs_needed:
-        {{
-            "product_text": "needed to describe the product or service",
-            "persona_text": "needed to adapt tone and messaging",
-            "intent": "optional goal of the message",
-            "tone": "optional tone of voice"
-        }}
+Allowed input keys:
+product_text, competitor_text, research_insights,
+persona_text, channel, budget, tone, intent, artifacts
 
-        Meta Ads:
-        - Meta / Facebook Ads campaigns
-        → task_type: "channel"
-        → action: "call_meta_ads_agent"
-        → inputs_needed: {{
-            "product_text": "description of product",
-            "persona_text": "persona for campaign",
-            "campaign_budget": "budget allocation"
-            }}
+Each input MUST be marked as:
+"required" or "optional"
 
-        Google Ads:
-        - Google / Search Ads
-        → task_type: "channel"
-        → action: "call_google_ads_agent"
-        → inputs_needed: {{
-            "product_text": "description of product",
-            "persona_text": "persona for campaign",
-            "campaign_budget": "budget allocation"
-            }}
+If uncertain, choose the simplest valid action.
 
-        E-Mail Marketing:
-        - Email campaigns, templates
-        → task_type: "channel"
-        → action: "call_email_agent"
-        → inputs_needed: {{
-            "product_text": "description of product",
-            "persona_text": "persona for campaign",
-            "email_template": "base template to use"
-            }}
+User task:
+{user_task}
 
-        Other task types:
-        - research   → call_research_agent
-        - analysis   → call_analysis_agent
-        - content    → call_content_agent
-        - experiment → call_experiment_agent
+Retrieved context:
+{json.dumps(retrieved, indent=2)}
 
-        === INPUT ===
-        User request:
-        {user_task}
+Return JSON in EXACT format:
+{{
+  "task_type": "research|persona|content|campaign",
+  "action": "one_allowed_action",
+  "inputs_needed": {{
+    "input_name": "required|optional"
+  }}
+}}
+"""
 
-        Retrieved memory:
-        {json.dumps(retrieved, indent=2)}
-
-        === OUTPUT FORMAT ===
-        {{
-          "task_type": "research|persona|content|experiment|analysis",
-          "reasoning": "short justification",
-          "action": "agent action name",
-          "inputs_needed": {{
-            "input_name": "why this input is required"
-          }}
-        }}
-        """
-
-    def _fallback_prompt(self, raw_text: str) -> str:
-        return f"""
-        Previous response was not valid JSON.
-        Convert the following into VALID JSON with fields:
-        task_type, reasoning, action, inputs_needed.
-        Return ONLY JSON - NEVER EXPLAIN.
-
-        Raw text:
-        {raw_text}
-        """
-
+    # Parsing & Validation
     def _try_parse(self, text: str) -> Optional[Dict[str, Any]]:
         try:
             data = json.loads(text)
-            required = {"task_type", "reasoning", "action", "inputs_needed"}
-            if not required.issubset(set(data.keys())):
-                logger.warning("Parsed JSON is missing required keys.")
+
+            if not isinstance(data, dict):
                 return None
-            if not isinstance(data.get("inputs_needed"), dict):
-                logger.warning("inputs_needed must be a dict.")
+
+            if "action" not in data or "inputs_needed" not in data:
                 return None
+
+            if data["action"] not in ALLOWED_ACTIONS:
+                logger.warning(f"Invalid action received: {data['action']}")
+                return None
+
+            if not isinstance(data["inputs_needed"], dict):
+                return None
+
+            data["inputs_needed"] = self._normalize_inputs(data["inputs_needed"])
+
             return data
+
         except Exception as e:
-            logger.warning(f"JSON parsing failed: {e}")
+            logger.warning(f"Reasoner JSON parsing failed: {e}")
             return None
 
+    def _normalize_inputs(self, inputs: Dict[str, Any]) -> Dict[str, str]:
+        normalized = {}
+        for key, value in inputs.items():
+            if key not in ALLOWED_INPUT_KEYS:
+                continue
+            if value not in ("required", "optional"):
+                normalized[key] = "optional"
+            else:
+                normalized[key] = value
+        return normalized
+
+    # Fallback
     def _default_decision(self) -> Dict[str, Any]:
         return {
             "task_type": "research",
-            "reasoning": "fallback due to reasoning failure",
             "action": "call_research_agent",
             "inputs_needed": {
-                "product_text": "required"
+                "product_text": "required",
+                "competitor_text": "optional"
             }
         }
 
-    def decide(self, user_task: str):
-        """
-        Main reasoning entrypoint.
-        Returns structured JSON for Dispatcher.
-        """
-        logger.info("Starting reasoning process.")
+    # Public API
+    def decide(self, user_task: str) -> Dict[str, Any]:
+        logger.info("[Reasoner] Starting decision process")
 
         retrieved = {}
-        if self.retriever is not None:
+        if self.retriever:
             try:
                 retrieved = self.retriever.search_docs(user_task)
             except Exception as e:
-                logger.warning(f"Retriever failed: {e}")
-                retrieved = {}
+                logger.warning(f"[Reasoner] Retriever failed: {e}")
 
         prompt = self._build_prompt(user_task, retrieved)
         response = invoke(prompt)
 
         if not response:
-            logger.error("No reasoning response from Agent on initial call.")
             return self._default_decision()
 
         parsed = self._try_parse(response)
         if parsed:
-            logger.info("Successfully parsed initial LLM response.")
             return parsed
 
-        logger.warning("Initial parse failed - requesting JSON-only fallback from Agent")
-        fallback = self._fallback_prompt(response)
-        updated_response = invoke(fallback)
+        # Retry once with hard fallback instruction
+        fallback_prompt = f"""
+Convert the following text into VALID JSON ONLY.
+Use allowed actions and input keys only.
 
-        if not updated_response:
-            logger.error("No response from LLM on fallback.")
-            return self._default_decision()
+Text:
+{response}
+"""
+        retry_response = invoke(fallback_prompt)
 
-        parsed_fallback = self._try_parse(updated_response)
-        if parsed_fallback:
-            logger.info("Successfully parsed fallback LLM response.")
-            return parsed_fallback
+        if retry_response:
+            parsed_retry = self._try_parse(retry_response)
+            if parsed_retry:
+                return parsed_retry
 
-        logger.error("Both parsing attempts failed.")
         return self._default_decision()
