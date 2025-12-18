@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class SyncExecutor(BaseExecutor):
     """
     A temporary synchronous executor.
-    Act as a placeholder for async execution. 
+    Act as a placeholder for async execution.
     """
 
     def execute(
