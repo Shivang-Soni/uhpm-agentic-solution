@@ -58,7 +58,7 @@ class CampaignService:
         if campaign["status"] != CampaignStatus.PREVIEWED:
             raise RuntimeError(
                 f"Campaign {campaign_id} is not ready for publishing"
-                f"(status = {campaign["status"]})"
+                f"(status = {campaign.get("status")})"
             )
         
         logger.info(
