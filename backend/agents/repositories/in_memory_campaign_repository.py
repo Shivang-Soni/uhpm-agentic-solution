@@ -22,16 +22,22 @@ class InMemoryCampaignRepository(BaseCampaignRepository):
         campaign["status"] = "created"
 
         self._store[campaign_id] = campaign
-        logger.info(f"Campaign Repository: Created campaign with id: {campaign_id}")
+        logger.info(
+            f"Campaign Repository: Created campaign with id: {campaign_id}"
+            )
         return campaign
 
-    def update(self, campaign_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    def update(
+            self, campaign_id: str, updates: Dict[str, Any]
+            ) -> Dict[str, Any]:
         if campaign_id not in self._store:
             raise ValueError("Campaign not found.")
 
         self._store["campaign_id"].update(updates)
 
-        logger.info(f"Campaign Repository: Updated campaign with {campaign_id}")
+        logger.info(
+            f"Campaign Repository: Updated campaign with {campaign_id}"
+            )
         return self._store[campaign_id]
 
     def get(self, campaign_id: str) -> Dict[str, Any]:
