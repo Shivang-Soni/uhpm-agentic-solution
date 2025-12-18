@@ -14,7 +14,7 @@ class BaseCampaignRepository(ABC):
     @abstractmethod
     def update(
         self, campaign_id: str, updates: Dict[str, Any]
-        ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:
         pass
 
     @abstractmethod
