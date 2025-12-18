@@ -28,7 +28,7 @@ class ChannelAdapterDispatcher:
         self.registry = registry
         self.repository = repository
 
-    # ---------- PREVIEW ----------
+    # Preview
 
     def preview(
         self,
@@ -47,7 +47,7 @@ class ChannelAdapterDispatcher:
         campaign_id = campaign["id"]
         adapter = self.registry.get(channel)
 
-        # Transition: CREATED -> PREVIEWING
+        # Transition: CREATED to PREVIEWING
         next_status = CampaignStateMachine.transition(
             campaign["status"], "start_preview"
         )
@@ -64,7 +64,7 @@ class ChannelAdapterDispatcher:
         try:
             result = adapter.safe_preview(artifacts)
 
-            # Transition: PREVIEWING -> PREVIEWED
+            # Transition: PREVIEWING to PREVIEWED
             next_status = CampaignStateMachine.transition(
                 next_status, "preview_success"
             )
@@ -107,7 +107,7 @@ class ChannelAdapterDispatcher:
                 "error": str(e),
             }
 
-    # ---------- PUBLISH ----------
+    # Publish
 
     def publish(self, campaign_id: str) -> Dict[str, Any]:
 
@@ -117,7 +117,7 @@ class ChannelAdapterDispatcher:
 
         adapter = self.registry.get(channel)
 
-        # Transition: PREVIEWED -> PUBLISHING
+        # Transition: PREVIEWED to PUBLISHING
         next_status = CampaignStateMachine.transition(
             campaign["status"], "start_publish"
         )
@@ -134,7 +134,7 @@ class ChannelAdapterDispatcher:
         try:
             result = adapter.safe_publish(artifacts)
 
-            # Transition: PUBLISHING -> PUBLISHED
+            # Transition: PUBLISHING to PUBLISHED
             final_status = CampaignStateMachine.transition(
                 next_status, "publish_success"
             )
