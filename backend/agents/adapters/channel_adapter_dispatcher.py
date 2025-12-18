@@ -14,16 +14,17 @@ class ChannelAdapterDispatcher:
 
     Responsibilities:
     - Resolve adapter by channel
-    - Enforce adapter capabilities
-    - Execute preview or publish safely
-    - Normalize execution responses
+    - Create and manage campaign lifecycle
+    - Execute preview and publish safely
+    - Persist campaign state transitions
+    - Return normalized responses
     """
 
     def __init__(
-            self,
-            registry: ChannelAdapterRegistry,
-            repository: BaseCampaignRepository
-            ):
+        self,
+        registry: ChannelAdapterRegistry,
+        repository: BaseCampaignRepository,
+    ):
         self.registry = registry
         self.repository = repository
 
@@ -32,63 +33,66 @@ class ChannelAdapterDispatcher:
         channel: str,
         artifacts: Dict[str, Any],
     ) -> Dict[str, Any]:
+        # Create campaign
         campaign = self.repository.create(
             {
                 "channel": channel,
                 "artifacts": artifacts,
-                "status": CampaignStatus.CREATED
+                "status": CampaignStatus.CREATED,
             }
         )
 
         campaign_id = campaign["id"]
         adapter = self.registry.get(channel)
 
+        # Update status to PREVIEWING
         self.repository.update(
             campaign_id=campaign_id,
-            updates={
-                "status": CampaignStatus.PREVIEWING
-            }
+            updates={"status": CampaignStatus.PREVIEWING},
         )
 
         logger.info(
-            f"[ChannelAdapterDispatcher] Preview request | channel={channel}"
+            f"[ChannelAdapterDispatcher] Preview started | "
+            f"campaign_id={campaign_id} channel={channel}"
         )
 
         try:
+            # Execute preview
             result = adapter.safe_preview(artifacts)
 
+            # Update status to PREVIEWED
             self.repository.update(
-                campaign_id,
-                {
+                campaign_id=campaign_id,
+                updates={
                     "status": CampaignStatus.PREVIEWED,
-                    "preview": result
-                }
+                    "preview": result,
+                },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": "preview_ready",
+                "status": CampaignStatus.PREVIEWED,
                 "channel": channel,
                 "data": result,
             }
 
         except Exception as e:
             logger.exception(
-                f"[ChannelAdapterDispatcher] Preview failed"
-                f" | channel={channel}"
+                f"[ChannelAdapterDispatcher] Preview failed | "
+                f"campaign_id={campaign_id} channel={channel}"
             )
 
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
                     "status": CampaignStatus.PREVIEW_FAILED,
-                    "error": str(e)
-                }
+                    "error": str(e),
+                },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": "preview_failed",
+                "status": CampaignStatus.PREVIEW_FAILED,
                 "channel": channel,
                 "error": str(e),
             }
@@ -97,32 +101,35 @@ class ChannelAdapterDispatcher:
         self,
         campaign_id: str,
     ) -> Dict[str, Any]:
+        # Load campaign
         campaign = self.repository.get(campaign_id=campaign_id)
         channel = campaign["channel"]
         artifacts = campaign["artifacts"]
 
         adapter = self.registry.get(channel)
 
+        # Update status to PUBLISHING
         self.repository.update(
             campaign_id=campaign_id,
-            updates={
-                "status": CampaignStatus.PUBLISHING
-            }
+            updates={"status": CampaignStatus.PUBLISHING},
         )
 
         logger.info(
-            f"[ChannelAdapterDispatcher] Publishing started | channel={channel}"
+            f"[ChannelAdapterDispatcher] Publishing started | "
+            f"campaign_id={campaign_id} channel={channel}"
         )
 
         try:
+            # Execute publish
             result = adapter.safe_publish(artifacts)
 
+            # Update status to PUBLISHED
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
                     "status": CampaignStatus.PUBLISHED,
-                    'publish_result': result
-                }
+                    "publish_result": result,
+                },
             )
 
             return {
@@ -134,15 +141,16 @@ class ChannelAdapterDispatcher:
 
         except Exception as e:
             logger.exception(
-                f"[ChannelAdapterDispatcher] Publish failed | channel={channel}"
+                f"[ChannelAdapterDispatcher] Publish failed | "
+                f"campaign_id={campaign_id} channel={channel}"
             )
 
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
                     "status": CampaignStatus.PUBLISH_FAILED,
-                    "error": str(e)
-                }
+                    "error": str(e),
+                },
             )
 
             return {
