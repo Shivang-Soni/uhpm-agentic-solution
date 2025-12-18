@@ -4,6 +4,7 @@ from typing import Dict, Any
 from agents.adapters.channel_adapter_registry import ChannelAdapterRegistry
 from agents.repositories.base_campaign_repository import BaseCampaignRepository
 from agents.campaigns.campaign_status import CampaignStatus
+from agents.campaigns.campaign_state_machine import CampaignStateMachine
 
 logger = logging.getLogger(__name__)
 
@@ -14,10 +15,9 @@ class ChannelAdapterDispatcher:
 
     Responsibilities:
     - Resolve adapter by channel
-    - Create and manage campaign lifecycle
+    - Enforce campaign state transitions
     - Execute preview and publish safely
-    - Persist campaign state transitions
-    - Return normalized responses
+    - Persist campaign lifecycle
     """
 
     def __init__(
@@ -28,12 +28,14 @@ class ChannelAdapterDispatcher:
         self.registry = registry
         self.repository = repository
 
+    # ---------- PREVIEW ----------
+
     def preview(
         self,
         channel: str,
         artifacts: Dict[str, Any],
     ) -> Dict[str, Any]:
-        # Create campaign
+
         campaign = self.repository.create(
             {
                 "channel": channel,
@@ -45,10 +47,13 @@ class ChannelAdapterDispatcher:
         campaign_id = campaign["id"]
         adapter = self.registry.get(channel)
 
-        # Update status to PREVIEWING
+        # Transition: CREATED -> PREVIEWING
+        next_status = CampaignStateMachine.transition(
+            campaign["status"], "start_preview"
+        )
         self.repository.update(
             campaign_id=campaign_id,
-            updates={"status": CampaignStatus.PREVIEWING},
+            updates={"status": next_status},
         )
 
         logger.info(
@@ -57,21 +62,23 @@ class ChannelAdapterDispatcher:
         )
 
         try:
-            # Execute preview
             result = adapter.safe_preview(artifacts)
 
-            # Update status to PREVIEWED
+            # Transition: PREVIEWING -> PREVIEWED
+            next_status = CampaignStateMachine.transition(
+                next_status, "preview_success"
+            )
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
-                    "status": CampaignStatus.PREVIEWED,
+                    "status": next_status,
                     "preview": result,
                 },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": CampaignStatus.PREVIEWED,
+                "status": next_status,
                 "channel": channel,
                 "data": result,
             }
@@ -82,36 +89,41 @@ class ChannelAdapterDispatcher:
                 f"campaign_id={campaign_id} channel={channel}"
             )
 
+            failed_status = CampaignStateMachine.transition(
+                next_status, "preview_failed"
+            )
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
-                    "status": CampaignStatus.PREVIEW_FAILED,
+                    "status": failed_status,
                     "error": str(e),
                 },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": CampaignStatus.PREVIEW_FAILED,
+                "status": failed_status,
                 "channel": channel,
                 "error": str(e),
             }
 
-    def publish(
-        self,
-        campaign_id: str,
-    ) -> Dict[str, Any]:
-        # Load campaign
+    # ---------- PUBLISH ----------
+
+    def publish(self, campaign_id: str) -> Dict[str, Any]:
+
         campaign = self.repository.get(campaign_id=campaign_id)
         channel = campaign["channel"]
         artifacts = campaign["artifacts"]
 
         adapter = self.registry.get(channel)
 
-        # Update status to PUBLISHING
+        # Transition: PREVIEWED -> PUBLISHING
+        next_status = CampaignStateMachine.transition(
+            campaign["status"], "start_publish"
+        )
         self.repository.update(
             campaign_id=campaign_id,
-            updates={"status": CampaignStatus.PUBLISHING},
+            updates={"status": next_status},
         )
 
         logger.info(
@@ -120,21 +132,23 @@ class ChannelAdapterDispatcher:
         )
 
         try:
-            # Execute publish
             result = adapter.safe_publish(artifacts)
 
-            # Update status to PUBLISHED
+            # Transition: PUBLISHING -> PUBLISHED
+            final_status = CampaignStateMachine.transition(
+                next_status, "publish_success"
+            )
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
-                    "status": CampaignStatus.PUBLISHED,
+                    "status": final_status,
                     "publish_result": result,
                 },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": CampaignStatus.PUBLISHED,
+                "status": final_status,
                 "channel": channel,
                 "data": result,
             }
@@ -145,17 +159,20 @@ class ChannelAdapterDispatcher:
                 f"campaign_id={campaign_id} channel={channel}"
             )
 
+            failed_status = CampaignStateMachine.transition(
+                next_status, "publish_failed"
+            )
             self.repository.update(
                 campaign_id=campaign_id,
                 updates={
-                    "status": CampaignStatus.PUBLISH_FAILED,
+                    "status": failed_status,
                     "error": str(e),
                 },
             )
 
             return {
                 "campaign_id": campaign_id,
-                "status": CampaignStatus.PUBLISH_FAILED,
+                "status": failed_status,
                 "channel": channel,
                 "error": str(e),
             }
