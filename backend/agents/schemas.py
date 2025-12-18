@@ -83,3 +83,12 @@ class MetaAdsAgentOutput(BaseModel):
     persona:  str
     budget: str
     tone: str
+
+
+class PreviewRequest(BaseModel):
+    channel: str
+    artifacts: Dict
+
+
+class PublishRequest(BaseModel):
+    campaign_id: str
