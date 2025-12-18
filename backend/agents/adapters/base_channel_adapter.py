@@ -17,39 +17,69 @@ class BaseChannelAdapter:
     supports_preview: bool = True
     supports_publish: bool = True
 
-    # ---- Core interface ----
-
+    # Core interface
     def validate(self, artifacts: Dict[str, Any]) -> bool:
-        raise NotImplementedError
+        raise NotImplementedError("validate() must be implemented by subclass")
 
     def preview(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError
+        raise NotImplementedError("preview() must be implemented by subclass")
 
     def publish(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
-        raise NotImplementedError
+        raise NotImplementedError("publish() must be implemented by subclass")
 
-    # ---- Safe execution wrappers ----
-
+    # Safe execution wrappers
     def safe_preview(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         if not self.supports_preview:
-            raise RuntimeError("Preview not supported by this adapter")
-
-        if not self.validate(artifacts):
-            raise ValueError("Artifact validation failed")
+            raise RuntimeError(
+                f"{self.__class__.__name__} does not support preview"
+            )
 
         logger.info(
-            f"[{self.__class__.__name__}] Preview executed successfully"
+            f"[{self.__class__.__name__}] Preview started"
         )
-        return self.preview(artifacts)
+
+        try:
+            if not self.validate(artifacts):
+                raise ValueError("Artifact validation failed")
+
+            result = self.preview(artifacts)
+
+            logger.info(
+                f"[{self.__class__.__name__}] Preview completed successfully"
+            )
+
+            return result
+
+        except Exception:
+            logger.exception(
+                f"[{self.__class__.__name__}] Preview execution failed"
+            )
+            raise
 
     def safe_publish(self, artifacts: Dict[str, Any]) -> Dict[str, Any]:
         if not self.supports_publish:
-            raise RuntimeError("Publish not supported by this adapter")
-
-        if not self.validate(artifacts):
-            raise ValueError("Artifact validation failed")
+            raise RuntimeError(
+                f"{self.__class__.__name__} does not support publish"
+            )
 
         logger.info(
-            f"[{self.__class__.__name__}] Publish executed successfully"
+            f"[{self.__class__.__name__}] Publish started"
         )
-        return self.publish(artifacts)
+
+        try:
+            if not self.validate(artifacts):
+                raise ValueError("Artifact validation failed")
+
+            result = self.publish(artifacts)
+
+            logger.info(
+                f"[{self.__class__.__name__}] Publish completed successfully"
+            )
+
+            return result
+
+        except Exception:
+            logger.exception(
+                f"[{self.__class__.__name__}] Publish execution failed"
+            )
+            raise
