@@ -92,3 +92,11 @@ class PreviewRequest(BaseModel):
 
 class PublishRequest(BaseModel):
     campaign_id: str
+
+
+class ExecutionResult(BaseModel):
+    action: str
+    success: bool = True
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
