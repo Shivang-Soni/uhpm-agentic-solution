@@ -16,7 +16,7 @@ class ExecutionContextAgent:
             social_context: Dict[str, object],
             user_payload: Dict[str, object]
     ) -> List[Dict[str, object]]:
-        
+
         """
         Returns an ordered list of dispatcher actions.
         """
