@@ -29,4 +29,18 @@ class Settings:
     META_ADS_TOKEN: str = os.getenv("META_ADS_TOKEN", "")
     META_ADS_ACCOUNT_ID = os.getenv("META_ADS_ACCOUNT_ID", "")
 
+    # Google Ads API
+    GOOGLE_ADS_DEVELOPER_TOKEN: str = os.getenv(
+        "GOOGLE_ADS_DEVELOPER_TOKEN", ""
+        )
+    GOOGLE_ADS_CUSTOMER_ID: str = os.getenv(
+        "GOOGLE_ADS_CUSTOMER_ID", ""
+        )
+    GOOGLE_ADS_LOGIN_CUSTOMER_ID: str = os.getenv(
+        "GOOGLE_ADS_LOGIN_CUSTOMER_ID", ""
+        )
+    GOOGLE_ADS_SERVICE_ACCOUNT_JSON: str = os.getenv(
+        "GOOGLE_ADS_SERVICE_ACCOUNT_JSON", ""
+    )
+
 settings = Settings()
