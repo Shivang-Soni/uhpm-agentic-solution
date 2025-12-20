@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from llm.gemini_pipeline import invoke
 
@@ -130,11 +130,17 @@ Return JSON in EXACT format:
         }
 
     # Public API
-    def decide(self, user_task: str) -> Dict[str, Any]:
+    def decide(self, user_task: str, memory_context: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """
+        memory_context: optional list of previously executed relevant tasks
+        from GraphState["memory_context"].
+        """
         logger.info("[Reasoner] Starting decision process")
 
-        retrieved = {}
-        if self.retriever:
+        retrieved = memory_context or {}
+
+        # fallback to retriever if memory_context is empty
+        if not retrieved and self.retriever:
             try:
                 retrieved = self.retriever.search_docs(user_task)
             except Exception as e:
