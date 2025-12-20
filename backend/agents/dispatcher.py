@@ -1,6 +1,8 @@
 import logging
 from typing import Dict, Any
 
+from agents.schemas import ExecutionResult
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,38 +37,89 @@ class Dispatcher:
 
         try:
             if action == "preview_campaign":
-                return {
+                data = {
                     "channel_result": self.channel_dispatcher.preview(
                         channel=user_payload.get("channel"),
                         artifacts=user_payload.get("artifacts"),
                     )
                 }
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=data
+                ).model_dump()
 
             if action == "publish_campaign":
-                return {
+                data = {
                     "channel_result": self.channel_dispatcher.publish(
                         channel=user_payload.get("channel"),
                         artifacts=user_payload.get("artifacts"),
                     )
                 }
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=data
+                ).model_dump()
 
             if action == "call_content_agent":
-                return self.content_agent.generate_content(**user_payload)
+                result = self.content_agent.generate_content(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
 
             if action == "call_research_agent":
-                return self.research_agent.analyse_product(**user_payload)
+                result = self.research_agent.analyse_product(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
 
             if action == "call_persona_agent":
-                return self.persona_agent.build_persona(**user_payload)
+                result = self.persona_agent.build_persona(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
 
             if action == "call_experiment_agent":
-                return self.experiment_agent.evaluate(**user_payload)
+                result = self.experiment_agent.evaluate(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
+
+            if action == "call_analytics_agent":
+                result = self.analytics_agent.analyse(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
 
             if action == "call_whatsapp_agent":
-                return self.whatsapp_agent.generate(**user_payload)
+                result = self.whatsapp_agent.generate(**user_payload)
+                return ExecutionResult(
+                    action=action,
+                    success=True,
+                    data=result if isinstance(result, dict) else result.model_dump()
+                ).model_dump()
 
-            return {"error": f"Unknown action: {action}"}
+            return ExecutionResult(
+                action=action or "unknown",
+                success=False,
+                error=f"Unknown action: {action}"
+            ).model_dump()
 
         except Exception as e:
-            logger.exception("Dispatcher error")
-            return {"error": str(e)}
+            logger.exception("Dispatcher execution failed")
+            return ExecutionResult(
+                action=action or "unknown",
+                success=False,
+                error=str(e)
+            ).model_dump()
