@@ -1,11 +1,13 @@
 import logging
-from typing import TypedDict, Any
+from typing import TypedDict, Dict, Any, List
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
 from agents.planner_agent import PlannerAgent
 from agents.reasoner import ReasonerAgent
+from agents.execution_context_agent import ExecutionContextAgent
+from agents.agent_runner import AgentRunner
 from agents.dispatcher import Dispatcher
 
 from agents.research_agent import ResearchAgent
@@ -24,21 +26,30 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# Graph State Definition
 class GraphState(TypedDict, total=False):
+    # Core
     task: str
-    plan: dict
-    reasoning: dict
-    agent_output: dict
+    plan: Dict[str, Any]
+    reasoning: Dict[str, Any]
 
+    # Execution
+    execution_plan: List[Dict[str, Any]]
+    execution_results: List[Dict[str, Any]]
+    last_result: Dict[str, Any]
+
+    # Channel outputs
     channel: str
-    artifacts: dict
-    channel_result: dict
+    artifacts: Dict[str, Any]
+    channel_result: Dict[str, Any]
 
 
-# Agents
+# Agent Initialization
 retriever = None
+
 planner_agent = PlannerAgent()
-reasoner = ReasonerAgent(retriever)
+reasoner_agent = ReasonerAgent(retriever)
+execution_context_agent = ExecutionContextAgent()
 
 research_agent = ResearchAgent()
 persona_agent = PersonaAgent()
@@ -51,49 +62,64 @@ channel_registry = ChannelAdapterRegistry()
 channel_dispatcher = ChannelAdapterDispatcher(channel_registry)
 
 dispatcher = Dispatcher(
-    research_agent,
-    persona_agent,
-    content_agent,
-    experiment_agent,
-    analytics_agent,
-    whatsapp_agent,
-    channel_adapter_dispatcher=channel_dispatcher
+    research_agent=research_agent,
+    persona_agent=persona_agent,
+    content_agent=content_agent,
+    experiment_agent=experiment_agent,
+    analytics_agent=analytics_agent,
+    whatsapp_agent=whatsapp_agent,
+    channel_adapter_dispatcher=channel_dispatcher,
 )
 
+execution_runner = AgentRunner(dispatcher)
 
-def planner_node(state: GraphState):
+
+# Graph Nodes
+def planner_node(state: GraphState) -> GraphState:
+    logger.info("Planner node started")
     state["plan"] = planner_agent.plan(state.get("task", ""))
     return state
 
 
-def reason_node(state: GraphState):
-    state["reasoning"] = reasoner.decide(state.get("task", ""))
+def reason_node(state: GraphState) -> GraphState:
+    logger.info("Reasoner node started")
+    state["reasoning"] = reasoner_agent.decide(state.get("task", ""))
     return state
 
 
-def dispatch_node(state: GraphState):
-    result = dispatcher.run(
-        state=state,
-        reason_output=state.get("reasoning", {}),
+def execution_context_node(state: GraphState) -> GraphState:
+    logger.info("Execution context node started")
+
+    execution_plan = execution_context_agent.build_execution_plan(
+        plan=state.get("plan", {}),
+        social_context=state.get("reasoning", {}),
         user_payload=state,
-        plan=state.get("plan")
     )
 
-    if "channel_result" in result:
-        state["channel_result"] = result["channel_result"]
-    else:
-        state["agent_output"] = result
-
+    state["execution_plan"] = execution_plan
     return state
 
 
-def memory_node(state: GraphState):
+def execution_runner_node(state: GraphState) -> GraphState:
+    logger.info("Execution runner node started")
+
+    updated_state = execution_runner.run(
+        state=state,
+        execution_plan=state.get("execution_plan", []),
+    )
+
+    return updated_state
+
+
+def memory_node(state: GraphState) -> GraphState:
+    logger.info("Memory node started")
+
     add_document(
         text=str(state),
         metadata={
             "type": "uhpm_graph_run",
-            "has_error": "error" in str(state).lower()
-        }
+            "has_error": "error" in str(state).lower(),
+        },
     )
     return state
 
@@ -103,14 +129,16 @@ def create_uhpm_graph(checkpointer=None):
 
     graph.add_node("planner", planner_node)
     graph.add_node("reason", reason_node)
-    graph.add_node("dispatch", dispatch_node)
+    graph.add_node("execution_context", execution_context_node)
+    graph.add_node("execution_runner", execution_runner_node)
     graph.add_node("memory", memory_node)
 
     graph.set_entry_point("planner")
 
     graph.add_edge("planner", "reason")
-    graph.add_edge("reason", "dispatch")
-    graph.add_edge("dispatch", "memory")
+    graph.add_edge("reason", "execution_context")
+    graph.add_edge("execution_context", "execution_runner")
+    graph.add_edge("execution_runner", "memory")
     graph.add_edge("memory", END)
 
-    return graph.compile(checkpointer=checkpointer)
+    return graph.compile(checkpointer=checkpointer or MemorySaver())
