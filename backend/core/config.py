@@ -25,4 +25,8 @@ class Settings:
 
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
+    # Meta Ads API
+    META_ADS_TOKEN: str = os.getenv("META_ADS_TOKEN", "")
+    META_ADS_ACCOUNT_ID = os.getenv("META_ADS_ACCOUNT_ID", "")
+
 settings = Settings()
