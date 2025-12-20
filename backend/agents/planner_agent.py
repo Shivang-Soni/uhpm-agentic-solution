@@ -19,6 +19,8 @@ class PlannerAgent:
         Your job is to analyze the user's request and output a JSON plan that
         tells the system which agents must be activated.
 
+        If replanned is true, analyze the previous failure and adjust the plan.
+
         Agents available:
         - research_agent (product analysis, competitor analysis)
         - persona_agent (target audience creation)
