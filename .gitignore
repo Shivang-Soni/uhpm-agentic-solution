@@ -6,3 +6,4 @@ dist
 *.pyc
 .vscode
 chroma_store
+*.json
