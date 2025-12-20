@@ -38,6 +38,9 @@ class GraphState(TypedDict, total=False):
     execution_results: List[Dict[str, Any]]
     last_result: Dict[str, Any]
 
+    # Control
+    replanned: bool
+
     # Channel outputs
     channel: str
     artifacts: Dict[str, Any]
@@ -124,6 +127,20 @@ def memory_node(state: GraphState) -> GraphState:
     return state
 
 
+def failure_router(state: GraphState) -> str:
+    last = state.get("last_result")
+
+    if not last:
+        return "memory"
+
+    if last.get("success") is False and not state.get("replanned", False):
+        logger.warning("Failure detected: triggering replan.")
+        state["replanned"] = True
+        return "planner"
+
+    return "memory"
+
+
 def create_uhpm_graph(checkpointer=None):
     graph = StateGraph(GraphState)
 
@@ -138,7 +155,14 @@ def create_uhpm_graph(checkpointer=None):
     graph.add_edge("planner", "reason")
     graph.add_edge("reason", "execution_context")
     graph.add_edge("execution_context", "execution_runner")
-    graph.add_edge("execution_runner", "memory")
+    graph.add_conditional_edges(
+        "execution_runner",
+        failure_router,
+        {
+            "planner": "planner",
+            "memory": "memory"
+        }
+    )
     graph.add_edge("memory", END)
 
     return graph.compile(checkpointer=checkpointer or MemorySaver())
