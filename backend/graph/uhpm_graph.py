@@ -122,7 +122,9 @@ def planner_node(state: GraphState) -> GraphState:
 def reason_node(state: GraphState) -> GraphState:
     logger.info("Reasoner node started")
 
-    state["reasoning"] = reasoner_agent.decide(state.get("task", ""))
+    state["reasoning"] = reasoner_agent.decide(
+        state.get("task", ""), state.get("memory_context", [])
+        )
 
     return state
 
