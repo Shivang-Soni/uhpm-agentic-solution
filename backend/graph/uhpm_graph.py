@@ -16,6 +16,7 @@ from agents.content_agent import ContentAgent
 from agents.experiment_agent import ExperimentationAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.whatsapp_agent import WhatsappAgent
+from agents.retriever_agent import RetrieverAgent
 
 from agents.adapters.channel_adapter_registry import ChannelAdapterRegistry
 from agents.adapters.channel_adapter_dispatcher import ChannelAdapterDispatcher
@@ -32,6 +33,7 @@ class GraphState(TypedDict, total=False):
     task: str
     plan: Dict[str, Any]
     reasoning: Dict[str, Any]
+    memory_context: List[Dict[str, Any]]
 
     # Execution
     execution_plan: List[Dict[str, Any]]
@@ -60,6 +62,7 @@ content_agent = ContentAgent()
 experiment_agent = ExperimentationAgent()
 analytics_agent = AnalyticsAgent()
 whatsapp_agent = WhatsappAgent()
+retriever_agent = RetrieverAgent()
 
 channel_registry = ChannelAdapterRegistry()
 channel_dispatcher = ChannelAdapterDispatcher(channel_registry)
@@ -75,6 +78,18 @@ dispatcher = Dispatcher(
 )
 
 execution_runner = AgentRunner(dispatcher)
+
+
+def memory_retrieval_node(state: GraphState) -> GraphState:
+    logging.info("Memory retrieval node started.")
+
+    task = state.get("task", "")
+    if not task:
+        return state
+
+    results = retriever_agent.search_docs(query=task, top_k=3)
+    state["memory_context"] = results
+    return state
 
 
 # Graph Nodes
@@ -149,9 +164,11 @@ def create_uhpm_graph(checkpointer=None):
     graph.add_node("execution_context", execution_context_node)
     graph.add_node("execution_runner", execution_runner_node)
     graph.add_node("memory", memory_node)
+    graph.add_node("memory_retrieval", memory_retrieval_node)
 
-    graph.set_entry_point("planner")
+    graph.set_entry_point("memory_retrieval")
 
+    graph.add_edge("memory_retrieval", "planner")
     graph.add_edge("planner", "reason")
     graph.add_edge("reason", "execution_context")
     graph.add_edge("execution_context", "execution_runner")
