@@ -38,7 +38,7 @@ class GoogleAdsAdapter(BaseChannelAdapter):
         customer_id = settings.GOOGLE_ADS_CUSTOMER_ID
 
         try:
-            # --- Budget ---
+            # Budget
             budget_service = client.get_service("CampaignBudgetService")
             budget_operation = client.get_type("CampaignBudgetOperation")
             budget = budget_operation.create
@@ -56,7 +56,7 @@ class GoogleAdsAdapter(BaseChannelAdapter):
 
             budget_resource = budget_response.results[0].resource_name
 
-            # --- Campaign ---
+            # Campaign
             campaign_service = client.get_service("CampaignService")
             campaign_operation = client.get_type("CampaignOperation")
             campaign = campaign_operation.create
