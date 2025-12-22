@@ -60,7 +60,9 @@ class WhatsappAgentOutput(BaseModel):
     initial_message: str
     follow_up_message: str
     closing_message: str
-    error: str
+    error: Optional[str]
+    intent: str
+    tone: str
 
 
 class GoogleAdsAgentOutput(BaseModel):
