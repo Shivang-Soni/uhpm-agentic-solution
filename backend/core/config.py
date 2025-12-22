@@ -43,4 +43,9 @@ class Settings:
         "GOOGLE_ADS_SERVICE_ACCOUNT_JSON", ""
     )
 
+    # Whatsapp API
+    WHATSAPP_ACCESS_TOKEN: str = os.getenv("WHATSAPP_ACCESS_TOKEN", "")
+    WHATSAPP_PHONE_NUMBER: str = os.getenv("WHATSAPP_PHONE_NUMBER", "")
+    WHATSAPP_API_NUMBER: str = os.getenv("WHATSAPP_API_NUMBER", "")
+
 settings = Settings()
