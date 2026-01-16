@@ -12,34 +12,33 @@ class CampaignService:
     """
     Application layer for campaign execution.
 
-    Responsiblities:
+    Responsibilities:
     - Validate high-level campaign intent
+    - Enforce campaign lifecycle rules
     - Delegate execution to dispatcher
-    - Guard invalid operations
     """
 
     def __init__(
-            self,
-            dispatcher: ChannelAdapterDispatcher,
-            repositiory: BaseCampaignRepository
+        self,
+        dispatcher: ChannelAdapterDispatcher,
+        repository: BaseCampaignRepository,
     ):
         self.dispatcher = dispatcher
-        self.repository = repositiory
+        self.repository = repository
 
     # Preview
+
     def preview_campaign(
-            self,
-            channel: str,
-            artifacts: Dict[str, Any]
+        self,
+        channel: str,
+        artifacts: Dict[str, Any],
     ) -> Dict[str, Any]:
 
         if not channel:
-            raise ValueError(
-                "Channel must be provided."
-            )
+            raise ValueError("Channel must be provided.")
 
         logger.info(
-            f"CampaignService: Preview requested | channel = {channel}"
+            f"[CampaignService] Preview requested | channel={channel}"
         )
 
         return self.dispatcher.preview(
@@ -48,21 +47,22 @@ class CampaignService:
         )
 
     # Publish
+
     def publish_campaign(
-            self,
-            campaign_id: str,
+        self,
+        campaign_id: str,
     ) -> Dict[str, Any]:
-        
-        campaign = self.repository.get(campaign_id)
+
+        campaign = self.repository.get(campaign_id=campaign_id)
 
         if campaign["status"] != CampaignStatus.PREVIEWED:
             raise RuntimeError(
-                f"Campaign {campaign_id} is not ready for publishing"
-                f"(status = {campaign.get("status")})"
+                f"Campaign {campaign_id} is not ready for publishing "
+                f"(status={campaign.get('status')})"
             )
-        
+
         logger.info(
-            f"CampaignService: Publish requested | campaign_id: {campaign_id}"
+            f"[CampaignService] Publish requested | campaign_id={campaign_id}"
         )
 
-        self.dispatcher.publish(campaign_id)
+        return self.dispatcher.publish(campaign_id=campaign_id)
