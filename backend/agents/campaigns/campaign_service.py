@@ -35,7 +35,10 @@ class CampaignService:
     ) -> Dict[str, Any]:
 
         if not channel:
-            raise ValueError("Channel must be provided.")
+            raise ValueError("Channel must be provided")
+
+        if not artifacts:
+            raise ValueError("Artifacts must be provided")
 
         logger.info(
             f"[CampaignService] Preview requested | channel={channel}"
@@ -53,7 +56,12 @@ class CampaignService:
         campaign_id: str,
     ) -> Dict[str, Any]:
 
+        if not campaign_id:
+            raise ValueError("Campaign ID must be provided")
+
         campaign = self.repository.get(campaign_id=campaign_id)
+        if not campaign:
+            raise RuntimeError(f"Campaign not found: {campaign_id}")
 
         if campaign["status"] != CampaignStatus.PREVIEWED:
             raise RuntimeError(
