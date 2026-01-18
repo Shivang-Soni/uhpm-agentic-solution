@@ -1,9 +1,10 @@
 from typing import Dict, Any
 import httpx
 
-from backend.core.config import Settings
+from backend.core.config import settings
 from agents.adapters.base_channel_adapter import BaseChannelAdapter
 from agents.schemas import MetaAdsAgentOutput
+from agents.adapters.meta_ads_client import get_meta_ads_client
 
 
 class MetaAdsAdapter(BaseChannelAdapter):
@@ -34,27 +35,31 @@ class MetaAdsAdapter(BaseChannelAdapter):
         if not self.validate(artifacts):
             raise ValueError("Invalid Meta Ads campaign artifact.")
 
-        url = f"https://graph.facebook.com/v17.0/{Settings.META_ADS_ACCOUNT_ID}/ads"
-        headers = {
-            "Authorization": f"Bearer {Settings.META_ADS_TOKEN}"
-            }
-        data = {
+        client = get_meta_ads_client()
+        account_id = settings.META_ADS_ACCOUNT_ID
+
+        payload = {
             "name": artifacts["headline"],
+            "status": "PAUSED",
+            "daily_budget": artifacts["budget"],
             "creative": {
                 "title": artifacts["headline"],
-                "body": artifacts["persona"]
+                "persona": artifacts["persona"]
             },
-            "status": "PAUSED",
-            "daily_budget": artifacts["budget"]
         }
 
         try:
-            response = httpx.post(url, headers=headers, json=data, timeout=10)
+            response = client.post(
+                f"/{account_id}/ads",
+                json=payload
+            )
             response.raise_for_status()
+
             return {
                 "status": "published",
                 "response": response.json()
             }
+
         except httpx.HTTPStatusError as e:
             return {
                 "status": "failed",
@@ -64,5 +69,5 @@ class MetaAdsAdapter(BaseChannelAdapter):
         except Exception as e:
             return {
                 "status": "failed",
-                "error": str(e)
+                "error": str(e),
             }
