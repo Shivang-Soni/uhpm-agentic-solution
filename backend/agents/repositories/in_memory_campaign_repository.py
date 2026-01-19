@@ -1,55 +1,51 @@
-import uuid
 import logging
-from typing import Dict, Any
-
-from backend.agents.repositories.base_campaign_repository import (
-    BaseCampaignRepository
-)
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
 
-class InMemoryCampaignRepository(BaseCampaignRepository):
+class CampaignStateMachine:
     """
-    In-memory campaign repository.
-    Used for local development and MVP phase.
+    Deterministic state machine for campaign lifecycle.
     """
 
-    def __init__(self):
-        self._store: Dict[str, Dict[str, Any]] = {}
+    _transitions: Dict[str, Dict[str, str]] = {
+        "created": {
+            "start_preview": "previewing",
+        },
+        "previewing": {
+            "preview_success": "previewed",
+            "preview_failed": "failed",
+        },
+        "previewed": {
+            "start_publish": "publishing",
+        },
+        "publishing": {
+            "publish_success": "published",
+            "publish_failed": "failed",
+        },
+        "published": {},
+        "failed": {},
+    }
 
-    def create(self, campaign: Dict[str, Any]) -> Dict[str, Any]:
-        campaign_id = str(uuid.uuid4())
+    @classmethod
+    def transition(cls, current_state: str, action: str) -> str:
+        if current_state not in cls._transitions:
+            raise ValueError(f"Unknown campaign state: {current_state}")
 
-        record = {
-            "id": campaign_id,
-            **campaign
-        }
+        state_actions = cls._transitions[current_state]
 
-        self._store[campaign_id] = record
+        if action not in state_actions:
+            raise ValueError(
+                f"Illegal campaign transition: "
+                f"state={current_state}, action={action}"
+            )
+
+        next_state = state_actions[action]
 
         logger.info(
-            f"[CampaignRepository] Created campaign | id={campaign_id}"
+            f"[CampaignStateMachine]"
+            f" {current_state} --({action})--> {next_state}"
         )
-        return record
 
-    def update(
-        self,
-        campaign_id: str,
-        updates: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        if campaign_id not in self._store:
-            raise KeyError(f"Campaign not found: {campaign_id}")
-
-        self._store[campaign_id].update(updates)
-
-        logger.info(
-            f"[CampaignRepository] Updated campaign | id={campaign_id}"
-        )
-        return self._store[campaign_id]
-
-    def get(self, campaign_id: str) -> Dict[str, Any]:
-        if campaign_id not in self._store:
-            raise KeyError(f"Campaign not found: {campaign_id}")
-
-        return self._store[campaign_id]
+        return next_state
