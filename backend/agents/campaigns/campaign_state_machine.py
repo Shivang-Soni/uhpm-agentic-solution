@@ -1,50 +1,49 @@
 import logging
 from typing import Dict
 
+from agents.campaigns.campaign_status import CampaignStatus
+
 logger = logging.getLogger(__name__)
 
 
 class CampaignStateMachine:
     """
-    Deterministic state machine for campaign lifecycle.
+    Enforces valid campaign state transitions using explicit actions.
     """
 
-    _transitions: Dict[str, Dict[str, str]] = {
-        "created": {
-            "start_preview": "previewing",
+    _transitions = {
+        CampaignStatus.CREATED: {
+            "start_preview": CampaignStatus.PREVIEWING,
         },
-        "previewing": {
-            "preview_success": "previewed",
-            "preview_failed": "failed",
+        CampaignStatus.PREVIEWING: {
+            "preview_success": CampaignStatus.PREVIEWED,
+            "preview_failed": CampaignStatus.PREVIEW_FAILED,
         },
-        "previewed": {
-            "start_publish": "publishing",
+        CampaignStatus.PREVIEWED: {
+            "start_publish": CampaignStatus.PUBLISHING,
         },
-        "publishing": {
-            "publish_success": "published",
-            "publish_failed": "failed",
+        CampaignStatus.PUBLISHING: {
+            "publish_success": CampaignStatus.PUBLISHED,
+            "publish_failed": CampaignStatus.PUBLISH_FAILED,
         },
-        "published": {},
-        "failed": {},
     }
 
     @classmethod
-    def transition(cls, current_state: str, action: str) -> str:
-        if current_state not in cls._transitions:
-            raise ValueError(f"Unknown campaign state: {current_state}")
-
-        state_actions = cls._transitions[current_state]
-
-        if action not in state_actions:
+    def transition(cls, current_status: CampaignStatus, action: str) -> CampaignStatus:
+        if current_status not in cls._transitions:
             raise ValueError(
-                f"Illegal campaign transition: "
-                f"state={current_state}, action={action}"
+                f"No transitions defined for state: {current_status}"
             )
 
-        next_state = state_actions[action]
+        if action not in cls._transitions[current_status]:
+            raise ValueError(
+                f"Illegal transition: {current_status} --({action})--> ?"
+            )
+
+        next_status = cls._transitions[current_status][action]
 
         logger.info(
-            f"[CampaignStateMachine] {current_state} --({action})--> {next_state}"
+            f"[CampaignStateMachine] {current_status} --({action})--> {next_status}"
         )
 
-        return next_state
+        return next_status
