@@ -1,45 +1,52 @@
 import logging
-from typing import Dict, Set
+from typing import Dict
 
 logger = logging.getLogger(__name__)
 
 
 class CampaignStateMachine:
     """
-    Enforces valid campaign state transitions.
+    Event-driven finite state machine for campaign lifecycle.
     """
 
-    # Allowed state transitions
-    _transitions: Dict[str, Set[str]] = {
-        "created": {"validated"},
-        "validated": {"previewed", "failed"},
-        "previewed": {"published", "failed"},
-        "published": set(),
-        "failed": set(),
+    # (current_state, event) -> next_state
+    _transitions: Dict[str, Dict[str, str]] = {
+        "created": {
+            "start_preview": "previewing",
+        },
+        "previewing": {
+            "preview_success": "previewed",
+            "preview_failed": "failed",
+        },
+        "previewed": {
+            "start_publish": "publishing",
+        },
+        "publishing": {
+            "publish_success": "published",
+            "publish_failed": "failed",
+        },
+        "failed": {},
+        "published": {},
     }
 
     @classmethod
-    def can_transition(cls, from_state: str, to_state: str) -> bool:
-        return to_state in cls._transitions.get(from_state, set())
+    def transition(cls, current_state: str, event: str) -> str:
+        if current_state not in cls._transitions:
+            raise ValueError(f"Unknown campaign state: {current_state}")
 
-    @classmethod
-    def transition(cls, campaign: Dict, to_state: str) -> Dict:
-        current_state = campaign.get("status")
+        state_events = cls._transitions[current_state]
 
-        if current_state is None:
-            raise ValueError("Campaign has no status")
-
-        if not cls.can_transition(current_state, to_state):
+        if event not in state_events:
             raise ValueError(
-                f"Illegal campaign state transition: "
-                f"{current_state} → {to_state}"
+                f"Illegal campaign transition: "
+                f"state={current_state}, event={event}"
             )
 
-        campaign["status"] = to_state
+        next_state = state_events[event]
 
         logger.info(
-            f"[CampaignStateMachine] Transitioned campaign "
-            f"{campaign.get('id')} | {current_state} → {to_state}"
+            f"[CampaignStateMachine] "
+            f"{current_state} --({event})--> {next_state}"
         )
 
-        return campaign
+        return next_state
