@@ -11,6 +11,7 @@ from agents.analytics_agent import AnalyticsAgent
 from agents.content_agent import ContentAgent
 from agents.experiment_agent import ExperimentationAgent
 from agents.persona_agent import PersonaAgent
+from agents.schemas import ReasonRequest
 
 router = APIRouter()
 # Logging configuration
@@ -32,18 +33,6 @@ dispatcher = Dispatcher(
     experiment_agent,
     analytics_agent
     )
-
-
-class ReasonRequest(BaseModel):
-    task: str
-    product_text: str | None = None
-    customer_text: str | None = None
-    market_text: str | None = None
-    competitor_text: str | None = None
-    persona_text: str | None = None
-    channel: str | None = None
-    variants: list | None = None
-    campaign_results: str | None = None
 
 
 @router.post("/reason")

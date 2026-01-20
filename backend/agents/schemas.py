@@ -102,3 +102,31 @@ class ExecutionResult(BaseModel):
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
+
+class GraphRequest(BaseModel):
+    task: str
+    product_text: Optional[str] | None
+    competitor_text: Optional[str] | None
+    market_text: Optional[str] | None
+    customer_text: Optional[str] | None
+    persona_text: Optional[str] | None
+    channel: Optional[str] | None
+    variants: Optional[List[str]] | None
+    campaign_results: Optional[str] | None
+
+
+class ReasonRequest(BaseModel):
+    task: str
+    product_text: str | None = None
+    customer_text: str | None = None
+    market_text: str | None = None
+    competitor_text: str | None = None
+    persona_text: str | None = None
+    channel: str | None = None
+    variants: list | None = None
+    campaign_results: str | None = None
+
+
+class ResearchRequest(BaseModel):
+    product_text: str
+    competitor_text: str | None = None

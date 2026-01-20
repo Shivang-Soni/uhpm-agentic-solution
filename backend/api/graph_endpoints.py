@@ -6,23 +6,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from graph.runner import run_graph
+from agents.schemas import GraphRequest
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-class GraphRequest(BaseModel):
-    task: str
-    product_text: Optional[str] | None
-    competitor_text: Optional[str] | None
-    market_text: Optional[str] | None
-    customer_text: Optional[str] | None
-    persona_text: Optional[str] | None
-    channel: Optional[str] | None
-    variants: Optional[List[str]] | None
-    campaign_results: Optional[str] | None
 
 
 @router.post("/run-graph")

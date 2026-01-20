@@ -4,17 +4,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from agents.research_agent import ResearchAgent
+from agents.schemas import ResearchRequest
 
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 agent = ResearchAgent()
-
-
-class ResearchRequest(BaseModel):
-    product_text: str
-    competitor_text: str | None = None
 
 
 @router.post("/analyse")
