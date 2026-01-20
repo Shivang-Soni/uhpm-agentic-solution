@@ -48,4 +48,5 @@ class Settings:
     WHATSAPP_PHONE_NUMBER_ID: str = os.getenv("WHATSAPP_PHONE_NUMBER", "")
     WHATSAPP_API_VERSION: str = os.getenv("WHATSAPP_API_NUMBER", "")
 
+
 settings = Settings()
