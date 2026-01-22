@@ -2,6 +2,8 @@ from typing import Optional, Dict, Any, List
 
 from pydantic import BaseModel, Field
 
+from actions import Action
+
 
 class PlannerOutput(BaseModel):
     task: str
@@ -130,3 +132,26 @@ class ReasonRequest(BaseModel):
 class ResearchRequest(BaseModel):
     product_text: str
     competitor_text: str | None = None
+
+
+class CampaignState(TypedDict, total=False):
+    # Core identifiers
+    campaign_id: str
+    current_action: Action
+
+    # Inputs
+    brief: str
+    target_audience: Optional[str]
+
+    # Generated artifacts
+    persona: Optional[Dict[str, Any]]
+    content: Optional[Dict[str, Any]]
+
+    # Experimentation
+    experiments: List[Dict[str, Any]]
+    performance_metrics: Optional[Dict[str, float]]
+
+    # Control and lifecycle
+    published: bool
+    errors: List[str]
+    history: List[Action]
