@@ -10,7 +10,7 @@ class AgentRegistry:
     """
 
     def __init__(self):
-        self._agents = Dict[Action, BaseAgent] = {}
+        self._agents: Dict[Action, BaseAgent] = {}
 
     def register(self, agent: BaseAgent) -> None:
         if agent.action in self._agents:
