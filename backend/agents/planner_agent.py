@@ -1,96 +1,92 @@
-import logging
 import json
+import logging
+from typing import Dict, Any
 
+from agents.base_agent import BaseAgent
+from actions import Action
+from agents.schemas import CampaignState, ExecutionResult, PlannerOutput
 from llm.gemini_pipeline import invoke
-from agents.schemas import PlannerOutput
+from agents.planner_context_agent import PlannerContextAgent
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-class PlannerAgent:
+class PlannerAgent(BaseAgent):
+    """
+    Converts user task + enriched context into an executable plan.
+    """
+
+    action = Action.PLAN
+
     def __init__(self):
-        pass
+        self.context_agent = PlannerContextAgent()
 
-    def plan(self, user_task: str) -> dict:
-        prompt = f"""
-        You are the Planner Agent of an ULTRA HIGH PERFORMANCE MARKETING AI
-        SYSTEM.
-        Your job is to analyze the user's request and output a JSON plan that
-        tells the system which agents must be activated.
-
-        If replanned is true, analyze the previous failure and adjust the plan.
-
-        Agents available:
-        - research_agent (product analysis, competitor analysis)
-        - persona_agent (target audience creation)
-        - content_agent (ads, posts, scripts, long-form content)
-        - experiment_agent (A/B tests, variations, test ideas)
-        - analytics_agent (ROI analysis, performance insights)
-
-        The output MUST be valid JSON with this structure:
-        {{
-            "task": "...",
-            "needs_research": true/false,
-            "needs_persona": true/false,
-            "needs_content": true/false,
-            "needs_experimentation": true/false,
-            "needs_analytics": true/false,
-            "additional_context": "Optional description or extracted info"
-        }}
-
-        User request:
-        {user_task}
-        """
-
-        response = invoke(prompt)
-
-        if not response:
-            logger.error(
-                "PlannerAgent returned no response. Using fallback plan."
-                )
-            return PlannerOutput(
-                task=user_task,
-                needs_research=True,
-                needs_persona=False,
-                needs_content=False,
-                needs_experimentation=False,
-                needs_analytics=False,
-                additional_context="Fallback: No agent response"
-            ).model_dump()
-
+    def execute(self, state: CampaignState) -> ExecutionResult:
         try:
-            parsed = json.loads(response)
-        except Exception as e:
-            logger.error(f"PlannerAgent failed to JSON parse: {e}")
-            logger.error(f"Raw Agent response: {response}")
-            return PlannerOutput(
-                task=user_task,
-                needs_research=True,
-                needs_persona=False,
-                needs_content=False,
-                needs_experimentation=False,
-                needs_analytics=False,
-                additional_context="Invalid JSON, fallback used."
-            ).model_dump()
+            user_task = state.get("task") or state.get("brief") or ""
 
-        try:
-            plan = PlannerOutput(**parsed)
-        except Exception as e:
-            logger.error(
-                "PlannerAgent JSON Structure invalid for PlannerOutput."
-                )
-            logger.error(f"Validation error: {e}")
-            logger.error(f"Parsed JSON: {parsed}")
-            return PlannerOutput(
-                task=user_task,
-                needs_research=True,
-                needs_persona=False,
-                needs_content=False,
-                needs_experimentation=False,
-                needs_analytics=False,
-                additional_context="Validation failed, fallback used."
-            ).model_dump()
+            # build external context (social sentiment etc.)
+            context = self.context_agent.build_context(user_task)
 
-        logger.info(f"PLANNER PLAN GENERATED: {plan}")
-        return plan.model_dump()
+            prompt = f"""
+You are the Planner Agent of an ULTRA HIGH PERFORMANCE MARKETING AI SYSTEM.
+
+Your job is to analyze the user's request and output a JSON plan that tells the system
+which agents must be activated.
+
+Agents available:
+- research_agent
+- persona_agent
+- content_agent
+- experiment_agent
+- analytics_agent
+
+Return ONLY valid JSON in this format:
+
+{{
+  "task": "...",
+  "needs_research": true/false,
+  "needs_persona": true/false,
+  "needs_content": true/false,
+  "needs_experimentation": true/false,
+  "needs_analytics": true/false,
+  "additional_context": "optional"
+}}
+
+User request:
+{user_task}
+
+External context:
+{json.dumps(context, indent=2)}
+"""
+
+            response = invoke(prompt)
+
+            if not response:
+                plan = self._fallback(user_task, "Empty LLM response")
+            else:
+                try:
+                    parsed = json.loads(response)
+                    plan = PlannerOutput(**parsed).model_dump()
+                except Exception as e:
+                    logger.warning(f"Planner JSON invalid: {e}")
+                    plan = self._fallback(user_task, "Invalid JSON")
+
+            # Agent returns only — Dispatcher commits to state
+            return self._success({"plan": plan})
+
+        except Exception as e:
+            logger.exception("PlannerAgent execution failed")
+            return self._failure(str(e))
+
+    def _fallback(self, task: str, reason: str) -> Dict[str, Any]:
+        return PlannerOutput(
+            task=task,
+            needs_research=True,
+            needs_persona=False,
+            needs_content=False,
+            needs_experimentation=False,
+            needs_analytics=False,
+            additional_context=f"Fallback used: {reason}",
+        ).model_dump()

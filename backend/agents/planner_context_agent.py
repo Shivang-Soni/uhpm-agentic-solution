@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, Any
 
 from backend.agents.social_insight_agent import SocialInsightAgent
 
@@ -15,23 +15,34 @@ class PlannerContextAgent:
     def __init__(self):
         self.social_insight_agent = SocialInsightAgent()
 
-    def build_context(self, user_task: str) -> Dict[str, object]:
+    def build_context(self, user_task: str) -> Dict[str, Any]:
         """
-        Generate planner ready context from social sentiment data.
+        Generate planner-ready context from social sentiment data.
         """
-        logger.info(
-            "PlannerContextAgent: Building planner"
-            " ready context from social insights."
-            )
 
-        insight = self.social_insight_agent.derive_marketing_insight(
-            query=user_task
+        logger.info(
+            "PlannerContextAgent: Building planner-ready context from social insights."
         )
 
-        context = {
-            "social_sentiment_summary": insight["sentiment_distribution"],
-            "social_verdict": insight["verdict"],
-            "confidence": insight["confidence"]
-        }
+        try:
+            insight = self.social_insight_agent.derive_marketing_insight(
+                query=user_task
+            )
+
+            context = {
+                "social_sentiment_summary": insight.get("sentiment_distribution"),
+                "social_verdict": insight.get("verdict"),
+                "confidence": insight.get("confidence"),
+            }
+
+        except Exception as e:
+            logger.warning(f"PlannerContextAgent failed: {e}")
+
+            context = {
+                "social_sentiment_summary": None,
+                "social_verdict": None,
+                "confidence": None,
+                "error": str(e),
+            }
 
         return context

@@ -12,3 +12,5 @@ class Action(str, Enum):
 
     GENERATE_PERSONA = "generate_persona"
     RUN_EXPERIMENT = "run_experiment"
+
+    PLAN = "plan"

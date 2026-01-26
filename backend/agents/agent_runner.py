@@ -1,49 +1,47 @@
 import logging
 from typing import Dict, Any, List
 
+from actions import Action
+from agents.dispatcher import Dispatcher
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class AgentRunner:
     """
-    Executes dispatcher actions sequentially
-    and persists ExecutionResults into state.
+    Execute dispatcher actions sequentially.
     """
 
-    def __init__(self, dispatcher):
+    def __init__(self, dispatcher: Dispatcher):
         self.dispatcher = dispatcher
 
     def run(
         self,
         state: Dict[str, Any],
-        execution_plan: List[Dict[str, Any]],
+        execution_plan: List[Action],
     ) -> Dict[str, Any]:
 
         logger.info("AgentRunner started")
 
         state.setdefault("execution_results", [])
 
-        for step_index, step in enumerate(execution_plan):
-            action = step.get("action")
-            payload = step.get("payload", {})
-
-            logger.info(f"Running step {step_index + 1}: {action}")
+        for step_index, action in enumerate(execution_plan):
+            logger.info(f"Running step {step_index + 1}: {action.value}")
 
             result = self.dispatcher.run(
                 state=state,
-                reason_output={"action": action},
-                user_payload=payload,
-                plan=state.get("plan"),
+                action=action,
             )
 
-            # Persist
+            # Persist raw ExecutionResult
             state["execution_results"].append(result)
             state["last_result"] = result
 
-            # Failure detection
-            if not result.get("success", False):
+            # Stop on failure
+            if not result.success:
                 logger.error(
-                    f"Execution failed at step {action}: {result.get('error')}"
+                    f"Execution failed at step {action.value}: {result.error}"
                 )
                 break
 
