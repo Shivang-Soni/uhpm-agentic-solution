@@ -7,13 +7,12 @@ from actions import Action
 from agents.schemas import CampaignState, ExecutionResult
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
-from agents.state import apply_execution_result
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 class PersonaAgent(BaseAgent):
+
     action = Action.GENERATE_PERSONA
 
     def execute(self, state: CampaignState) -> ExecutionResult:
@@ -22,39 +21,57 @@ class PersonaAgent(BaseAgent):
             market_text = state.get("market_text")
 
             prompt = f"""
-            You are a senior marketing persona modeler.
-            Generate a complete persona for the product below:
-            Product: {product_text}
-            Market/Customer Info: {market_text if market_text else "N/A"}
-            """
+You are a senior marketing persona modeler.
+
+Generate a complete buyer persona.
+
+Product:
+{product_text}
+
+Market / Customer Info:
+{market_text if market_text else "N/A"}
+
+Return ONLY valid JSON.
+"""
 
             response = invoke(prompt)
-            persona_result: Dict[str, Any] = {}
-            if response:
+
+            if not response:
+                persona_result = self._fallback("Empty LLM response")
+            else:
                 try:
-                    persona_result = json.loads(response)
+                    persona_result: Dict[str, Any] = json.loads(response)
                 except json.JSONDecodeError:
-                    logger.warning("Invalid JSON from LLM, returning fallback")
-                    persona_result = {
-                        "persona_name": "",
-                        "age_range": "",
-                        "demographics": "",
-                        "lifestyle": "",
-                        "deep_motivations": "",
-                        "pain_points": "",
-                        "buying_triggers": "",
-                        "objections": "",
-                        "language_and_tone": "",
-                        "recommended_channels": [],
-                        "summary": "",
-                        "error": "Invalid JSON"
-                    }
+                    logger.warning("Invalid JSON from LLM")
+                    persona_result = self._fallback("Invalid JSON")
 
-            apply_execution_result(state, {"persona": persona_result})
-            add_document(json.dumps(persona_result), metadata={"type": "persona"})
+            try:
+                add_document(
+                    json.dumps(persona_result),
+                    metadata={"type": "persona"}
+                )
+            except Exception as e:
+                logger.warning(f"Vectorstore write failed: {e}")
 
-            return self._success(persona_result)
+            # Agent returns only — Dispatcher commits
+            return self._success({"persona": persona_result})
 
         except Exception as e:
             logger.exception("PersonaAgent execution failed")
             return self._failure(str(e))
+
+    def _fallback(self, reason: str) -> Dict[str, Any]:
+        return {
+            "persona_name": "",
+            "age_range": "",
+            "demographics": "",
+            "lifestyle": "",
+            "deep_motivations": "",
+            "pain_points": "",
+            "buying_triggers": "",
+            "objections": "",
+            "language_and_tone": "",
+            "recommended_channels": [],
+            "summary": "",
+            "error": reason
+        }

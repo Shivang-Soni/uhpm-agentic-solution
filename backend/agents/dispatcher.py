@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, Any
 
 from actions import Action
@@ -11,46 +12,83 @@ logger = logging.getLogger(__name__)
 
 class Dispatcher:
     """
-    Execute exactly one action on CampaignState via the AgentRegistry.
-    Automatically applies execution results to CampaignState.
+    Executes exactly one Action against CampaignState.
+
+    Guarantees:
+    - Single commit boundary
+    - Idempotent action execution
+    - Structured history
+    - Deterministic state mutation
     """
 
     def __init__(self, registry: AgentRegistry):
         self.registry = registry
 
-    def run(
-            self,
-            state: CampaignState,
-            action: Action
-    ) -> ExecutionResult:
+    def run(self, state: CampaignState, action: Action) -> ExecutionResult:
+        timestamp = time.time()
+
+        # Idempotency: skip already successful actions
+        for entry in state.get("history", []):
+            if entry["action"] == action.value and entry["success"]:
+                logger.info(f"Skipping already completed action: {action.value}")
+                return ExecutionResult(
+                    action=action.value,
+                    success=True,
+                    data=entry.get("data", {})
+                )
 
         try:
             agent = self.registry.get(action)
 
             logger.info(
-                f"Dispatcher executing action = {action.value} "
-                f"with agent = {agent.__class__.__name__}"
+                f"Dispatcher executing action={action.value} agent={agent.__class__.__name__}"
             )
 
             result = agent.execute(state)
 
-            # Lifecycle bookkeeping
-            state.setdefault("history", []).append(action)
-            state["current_action"] = action
+            history_entry: Dict[str, Any] = {
+                "action": action.value,
+                "success": result.success,
+                "timestamp": timestamp,
+                "data_keys": list(result.data.keys()) if result.data else [],
+            }
 
             if result.success:
-                # Controlled mutation of state
                 if result.data:
                     apply_execution_result(state, result.data)
+
+                history_entry["data"] = result.data
             else:
-                state.setdefault("errors", []).append(result.error)
+                history_entry["error"] = result.error
+
+                state.setdefault("errors", []).append({
+                    "action": action.value,
+                    "timestamp": timestamp,
+                    "error": result.error
+                })
+
+            # Single commit boundary
+            state.setdefault("history", []).append(history_entry)
+            state["current_action"] = action.value
 
             return result
 
         except Exception as e:
             logger.exception("Dispatcher execution failed.")
 
-            state.setdefault("errors", []).append(str(e))
+            error_entry = {
+                "action": action.value,
+                "timestamp": timestamp,
+                "error": str(e)
+            }
+
+            state.setdefault("errors", []).append(error_entry)
+            state.setdefault("history", []).append({
+                "action": action.value,
+                "success": False,
+                "timestamp": timestamp,
+                "error": str(e)
+            })
 
             return ExecutionResult(
                 action=action.value,
