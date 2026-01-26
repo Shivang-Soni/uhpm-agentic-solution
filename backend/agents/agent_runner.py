@@ -10,7 +10,13 @@ logger.setLevel(logging.INFO)
 
 class AgentRunner:
     """
-    Execute dispatcher actions sequentially.
+    Executes dispatcher actions sequentially.
+
+    Contract:
+    - Receives ordered list of Actions
+    - Calls Dispatcher.run for each
+    - Dispatcher owns state mutation
+    - Runner controls flow + failure handling
     """
 
     def __init__(self, dispatcher: Dispatcher):
@@ -34,11 +40,12 @@ class AgentRunner:
                 action=action,
             )
 
-            # Persist raw ExecutionResult
-            state["execution_results"].append(result)
-            state["last_result"] = result
+            # persist SERIALIZED result
+            dumped = result.model_dump()
 
-            # Stop on failure
+            state["execution_results"].append(dumped)
+            state["last_result"] = dumped
+
             if not result.success:
                 logger.error(
                     f"Execution failed at step {action.value}: {result.error}"
