@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from agents.base_agent import BaseAgent
 from actions import Action
@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 
 class PlannerAgent(BaseAgent):
     """
-    Converts user task + enriched context into an executable plan.
+    Converts user task + enriched context into executable action plan.
     """
 
     action = Action.PLAN
@@ -26,23 +26,12 @@ class PlannerAgent(BaseAgent):
         try:
             user_task = state.get("task") or state.get("brief") or ""
 
-            # build external context (social sentiment etc.)
             context = self.context_agent.build_context(user_task)
 
             prompt = f"""
 You are the Planner Agent of an ULTRA HIGH PERFORMANCE MARKETING AI SYSTEM.
 
-Your job is to analyze the user's request and output a JSON plan that tells the system
-which agents must be activated.
-
-Agents available:
-- research_agent
-- persona_agent
-- content_agent
-- experiment_agent
-- analytics_agent
-
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON:
 
 {{
   "task": "...",
@@ -64,21 +53,55 @@ External context:
             response = invoke(prompt)
 
             if not response:
-                plan = self._fallback(user_task, "Empty LLM response")
+                plan_dict = self._fallback(user_task, "Empty LLM response")
             else:
                 try:
                     parsed = json.loads(response)
-                    plan = PlannerOutput(**parsed).model_dump()
+                    plan_dict = PlannerOutput(**parsed).model_dump()
                 except Exception as e:
                     logger.warning(f"Planner JSON invalid: {e}")
-                    plan = self._fallback(user_task, "Invalid JSON")
+                    plan_dict = self._fallback(user_task, "Invalid JSON")
 
-            # Agent returns only — Dispatcher commits to state
-            return self._success({"plan": plan})
+            execution_plan = self._build_execution_plan(plan_dict)
+
+            return self._success(
+                {
+                    "plan": plan_dict,
+                    "execution_plan": execution_plan,
+                }
+            )
 
         except Exception as e:
             logger.exception("PlannerAgent execution failed")
             return self._failure(str(e))
+
+    def _build_execution_plan(self, plan: Dict[str, Any]) -> List[Action]:
+        """
+        Converts boolean plan into ordered Actions.
+        """
+
+        actions: List[Action] = []
+
+        if plan.get("needs_research"):
+            actions.append(Action.GENERATE_PERSONA)
+
+        if plan.get("needs_persona"):
+            actions.append(Action.GENERATE_PERSONA)
+
+        if plan.get("needs_content"):
+            actions.append(Action.GENERATE_CONTENT)
+
+        if plan.get("needs_experimentation"):
+            actions.append(Action.RUN_EXPERIMENT)
+
+        if plan.get("needs_analytics"):
+            actions.append(Action.ANALYSE_PERFORMANCE)
+
+        # lifecycle always last
+        actions.append(Action.PREVIEW_CAMPAIGN)
+        actions.append(Action.PUBLISH_CAMPAIGN)
+
+        return actions
 
     def _fallback(self, task: str, reason: str) -> Dict[str, Any]:
         return PlannerOutput(
