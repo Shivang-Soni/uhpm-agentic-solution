@@ -10,26 +10,30 @@ logger = logging.getLogger()
 
 class MockChannelDispatcher:
     def preview(self, channel, artifacts):
-        return (
+        return {
             "mock_preview": True,
             "channel": channel
-        )
+        }
 
     def publish(self, channel, artifacts):
         return {
             "mock_publish": True,
             "channel": channel
         }
-    
 
-    registry = AgentRegistry()
 
-    channel_dispatcher = MockChannelDispatcher()
+# Initialse registry
+registry = AgentRegistry()
 
-    preview_agent = PreviewAgent(channel_dispatcher=channel_dispatcher)
-    publish_agent = PublishAgent(channel_dispatcher=channel_dispatcher)
+# ChannelDispatcher mocked
+channel_dispatcher = MockChannelDispatcher()
 
-    registry.register(preview_agent)
-    registry.register(publish_agent)
+# instantiate Agents
+preview_agent = PreviewAgent(channel_dispatcher=channel_dispatcher)
+publish_agent = PublishAgent(channel_dispatcher=channel_dispatcher)
 
-    logger.info(f"Registered Agents: {registry.list_actions()}")
+# Register Agents
+registry.register(preview_agent)
+registry.register(publish_agent)
+
+logger.info(f"Registered Agents: {registry.list_actions()}")
