@@ -1,31 +1,26 @@
-from typing import Dict, Any
-
 from agents.base_agent import BaseAgent
 from actions import Action
 from agents.schemas import CampaignState
-from agents.dispatcher import Dispatcher
 
 
 class PreviewAgent(BaseAgent):
 
     action = Action.PREVIEW_CAMPAIGN
 
-    def __init__(self, channel_dispatcher: Dispatcher):
+    def __init__(self, channel_dispatcher):
         self._channel_dispatcher = channel_dispatcher
 
     def execute(self, state: CampaignState):
 
         try:
-            result = self.channel_dispatcher.preview(
+            result = self._channel_dispatcher.preview(
                 channel=state.get("channel"),
-                artifacts=state.get("content")
+                artifacts=state.get("content") or {},
             )
 
-            return self._success(
-                {
-                    "preview_result": result
-                }
-            )
+            return self._success({
+                "preview_result": result
+            })
 
         except Exception as e:
             return self._failure(str(e))

@@ -1,15 +1,15 @@
 from agents.base_agent import BaseAgent
 from actions import Action
 from agents.schemas import CampaignState
-from agents.dispatcher import Dispatcher
+
 
 class PublishAgent(BaseAgent):
 
     action = Action.PUBLISH_CAMPAIGN
 
-    def __init__(self, channel_dispatcher: Dispatcher):
+    def __init__(self, channel_dispatcher):
         self._channel_dispatcher = channel_dispatcher
-    
+
     def execute(self, state: CampaignState):
 
         try:
@@ -18,13 +18,10 @@ class PublishAgent(BaseAgent):
                 artifacts=state.get("content") or {}
             )
 
-            return self._success(
-                {
-                    "preview_result": result
-                }
-            )
+            return self._success({
+                "published": True,
+                "publish_result": result
+            })
 
         except Exception as e:
-            return self._failure(
-                str(e)
-            )
+            return self._failure(str(e))
