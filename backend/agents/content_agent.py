@@ -1,160 +1,75 @@
 import json
 import logging
 import time
-from typing import Optional, Dict, Any
+from typing import Dict, Any, Optional
 
 from pydantic import ValidationError
-
+from agents.base_agent import BaseAgent
+from actions import Action
+from agents.schemas import CampaignState, ContentOutput, ContentVariant, ExecutionResult
 from llm.gemini_pipeline import invoke
 from vectorstore.store import add_document
-from agents.schemas import ContentOutput, ContentVariant
+from agents.state import apply_execution_result
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-class ContentAgent:
-    """
-    Generates marketing content based on product and persona.
-    Deterministic schema, safe fallback, production-ready.
-    """
-
+class ContentAgent(BaseAgent):
+    action = Action.GENERATE_CONTENT
     VERSION = "1.0"
 
-    def _build_prompt(
-        self,
-        product_text: str,
-        persona_text: str,
-        channel: str,
-        tone: Optional[str],
-        max_variants: int,
-    ) -> str:
-
-        templates = {
-            "social_media": "Create short, punchy social posts.",
-            "email": "Write a professional marketing email.",
-            "ads": "Write a catchy ad headline and description.",
-            "whatsapp": "Write short WhatsApp messages.",
-        }
-
-        instruction = templates.get(channel, templates["social_media"])
-
-        schema_example = {
-            "product_text": product_text,
-            "persona_text": persona_text,
-            "channel": channel,
-            "tone": tone or "",
-            "variants": [
-                {
-                    "headline": "string",
-                    "primary_text": "string",
-                    "cta": "string"
-                }
-            ]
-        }
-
-        return f"""
-You are a senior marketing content generator.
-
-Return ONLY a valid JSON object matching EXACTLY this schema:
-{json.dumps(schema_example, indent=2)}
-
-RULES:
-- Output JSON only.
-- Provide exactly {max_variants} variants.
-- Each variant must include headline and primary_text.
-- CTA is optional.
-- Infer tone if missing.
-
-Instruction:
-{instruction}
-
-Product:
-{product_text}
-
-Persona:
-{persona_text}
-
-Channel: {channel}
-Tone: {tone or "neutral"}
-"""
-
-    def _fallback(
-        self,
-        product_text: str,
-        persona_text: str,
-        channel: str,
-    ) -> ContentOutput:
-
+    def _fallback(self, product_text: str, persona_text: str, channel: str) -> ContentOutput:
         variant = ContentVariant(
             headline="Discover a better solution today",
             primary_text=product_text[:120],
             cta="Learn more"
         )
-
         return ContentOutput(
             product_text=product_text,
             persona_text=persona_text,
             channel=channel,
             tone="neutral",
             variants=[variant],
-            metadata={"fallback": True},
+            metadata={"fallback": True}
         )
 
-    def generate_content(
+    def execute(
         self,
-        product_text: str,
-        persona_text: str,
+        state: CampaignState,
         channel: str = "social_media",
         tone: Optional[str] = None,
-        max_variants: int = 3,
-    ) -> Dict[str, Any]:
-
-        start = time.time()
-
-        prompt = self._build_prompt(
-            product_text,
-            persona_text,
-            channel,
-            tone,
-            max_variants
-        )
-
-        logger.info("ContentAgent: invoking LLM.")
-        response = None
-
+        max_variants: int = 3
+    ) -> ExecutionResult:
         try:
+            product_text = state.get("brief") or ""
+            persona_text = state.get("persona", {}).get("summary", "")
+
+            prompt = f"""
+            Generate content for product:
+            {product_text}
+            Persona:
+            {persona_text}
+            Channel: {channel}
+            """
+
             response = invoke(prompt)
-        except Exception as e:
-            logger.error(f"LLM invocation failed: {e}")
-
-        if not response:
-            logger.warning("No LLM response. Using fallback.")
-            validated = self._fallback(product_text, persona_text, channel)
-        else:
-            try:
-                parsed = json.loads(response)
-                validated = ContentOutput(**parsed)
-            except (json.JSONDecodeError, ValidationError) as e:
-                logger.error(f"Invalid content output: {e}")
+            if not response:
+                logger.warning("LLM empty response, using fallback")
                 validated = self._fallback(product_text, persona_text, channel)
+            else:
+                try:
+                    parsed = json.loads(response)
+                    validated = ContentOutput(**parsed)
+                except (json.JSONDecodeError, ValidationError):
+                    logger.warning("Invalid JSON from LLM, using fallback")
+                    validated = self._fallback(product_text, persona_text, channel)
 
-        try:
-            add_document(
-                json.dumps(validated.model_dump()),
-                metadata={
-                    "type": "content",
-                    "channel": channel,
-                    "version": self.VERSION
-                },
-            )
+            apply_execution_result(state, {"content": validated.model_dump()})
+            add_document(json.dumps(validated.model_dump()), metadata={"type": "content", "version": self.VERSION})
+
+            return self._success(validated.model_dump())
+
         except Exception as e:
-            logger.error(f"Vectorstore write failed: {e}")
-
-        duration = time.time() - start
-        logger.info(
-            f"ContentAgent finished in {duration:.2f}s "
-            f"with {len(validated.variants)} variants"
-        )
-
-        return validated.model_dump()
+            logger.exception("ContentAgent execution failed")
+            return self._failure(str(e))
