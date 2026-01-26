@@ -1,10 +1,14 @@
-from typing import Dict, Callable
+from typing import Dict, Callable, Any
 
 from actions import Action
 from schemas import CampaignState
 
 
 class ActionRouter:
+    """
+    Routes current_action in state to the responsible agent/service.
+    """
+
     def __init__(self):
         self._routes: Dict[Action, Callable[[CampaignState], str]] = {
             Action.GENERATE_CONTENT: self._route_content,
@@ -17,6 +21,8 @@ class ActionRouter:
 
     def route(self, state: CampaignState) -> str:
         action = state.get("current_action")
+        if not action:
+            raise ValueError("State missing 'current_action'")
 
         if action not in self._routes:
             raise ValueError(f"No route exists for action: {action}")
@@ -40,5 +46,5 @@ class ActionRouter:
     def _route_preview(self, state: CampaignState) -> str:
         return "route_preview"
 
-    def route_publish(self, state: CampaignState) -> str:
+    def _route_publish(self, state: CampaignState) -> str:
         return "publish_agent"
