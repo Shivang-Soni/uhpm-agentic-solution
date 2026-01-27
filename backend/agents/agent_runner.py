@@ -1,8 +1,9 @@
 import logging
-from typing import Dict, Any, List
+from typing import List
 
 from actions import Action
 from agents.dispatcher import Dispatcher
+from agents.schemas import CampaignState
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -24,9 +25,9 @@ class AgentRunner:
 
     def run(
         self,
-        state: Dict[str, Any],
+        state: CampaignState,
         execution_plan: List[Action],
-    ) -> Dict[str, Any]:
+    ) -> CampaignState:
 
         logger.info("AgentRunner started")
 
@@ -40,7 +41,6 @@ class AgentRunner:
                 action=action,
             )
 
-            # persist SERIALIZED result
             dumped = result.model_dump()
 
             state["execution_results"].append(dumped)

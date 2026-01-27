@@ -76,14 +76,10 @@ External context:
             return self._failure(str(e))
 
     def _build_execution_plan(self, plan: Dict[str, Any]) -> List[Action]:
-        """
-        Converts boolean plan into ordered Actions.
-        """
-
         actions: List[Action] = []
 
         if plan.get("needs_research"):
-            actions.append(Action.GENERATE_PERSONA)
+            actions.append(Action.RESEARCH)
 
         if plan.get("needs_persona"):
             actions.append(Action.GENERATE_PERSONA)
