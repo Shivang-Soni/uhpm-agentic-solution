@@ -23,34 +23,17 @@ class AgentRunner:
     def __init__(self, dispatcher: Dispatcher):
         self.dispatcher = dispatcher
 
-    def run(
-        self,
-        state: CampaignState,
-        execution_plan: List[Action],
-    ) -> CampaignState:
-
-        logger.info("AgentRunner started")
-
-        state.setdefault("execution_results", [])
+    def run(self, state: CampaignState, execution_plan: List[Action]) -> CampaignState:
+        logger.info("[AgentRunner] Started execution plan")
 
         for step_index, action in enumerate(execution_plan):
-            logger.info(f"Running step {step_index + 1}: {action.value}")
+            logger.info(f"[AgentRunner] Step {step_index + 1}/{len(execution_plan)}: {action.value}")
 
-            result = self.dispatcher.run(
-                state=state,
-                action=action,
-            )
-
-            dumped = result.model_dump()
-
-            state["execution_results"].append(dumped)
-            state["last_result"] = dumped
+            result = self.dispatcher.run(state, action)
 
             if not result.success:
-                logger.error(
-                    f"Execution failed at step {action.value}: {result.error}"
-                )
+                logger.error(f"[AgentRunner] Execution failed at {action.value}: {result.error}")
                 break
 
-        logger.info("AgentRunner finished")
+        logger.info("[AgentRunner] Finished execution plan")
         return state
