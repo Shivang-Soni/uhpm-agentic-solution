@@ -26,7 +26,3 @@ pytest-asyncio==0.22.0
 sqlalchemy==2.0.20
 alembic==1.11.1
 psycopg2-binary==2.9.7
-
-chromadb==0.4.24
-sentence-transformers==2.7.0
-numpy<2.0
