@@ -1,23 +1,28 @@
+# backend/vectorstore/store.py
 import uuid
+from typing import Optional, Dict
 
 import chromadb
 from sentence_transformers import SentenceTransformer
 from core.config import settings
 
-# load embedding model
+# Lade Embedding-Modell
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# init persistent client
+# Initialisiere persistenten Chroma-Client
 chroma_client = chromadb.PersistentClient(path=settings.PERSIST_DIRECTORY)
 
-# load/create collection
+# Lade oder erstelle Collection
 collection = chroma_client.get_or_create_collection(
     name="uhpm_collection",
-    metadata={"hnsw:space": "cosine"}
+    metadata={"hnsw:space": "cosine"}  # cosine similarity
 )
 
 
-def add_document(text: str, metadata: dict | None = None):
+def add_document(text: str, metadata: Optional[Dict] = None) -> Dict:
+    """
+    Fügt ein Dokument in den Vector Store ein.
+    """
     doc_id = str(uuid.uuid4())
     embedding = embedding_model.encode(text).tolist()
 
@@ -31,17 +36,18 @@ def add_document(text: str, metadata: dict | None = None):
     return {"id": doc_id, "text": text}
 
 
-def search(query: str, k: int = 3):
+def search(query: str, k: int = 3) -> Dict:
+    """
+    Sucht die k ähnlichsten Dokumente zum Query.
+    """
     query_embedding = embedding_model.encode(query).tolist()
 
-    # MUST SPECIFY include param, or Chroma returns a non-serializable object
     raw = collection.query(
         query_embeddings=[query_embedding],
         n_results=k,
         include=["documents", "metadatas", "distances"],
     )
 
-    # ALWAYS convert to primitive dict
     return {
         "ids": raw.get("ids", [[]])[0],
         "documents": raw.get("documents", [[]])[0],
