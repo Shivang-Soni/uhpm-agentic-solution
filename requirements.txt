@@ -22,3 +22,7 @@ requests==2.31.0
 
 pytest==9.0.1
 pytest-asyncio==0.22.0
+
+sqlalchemy==2.0.20
+alembic==1.11.1
+psycopg2-binary==2.9.7
