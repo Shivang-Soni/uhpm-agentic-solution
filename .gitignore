@@ -7,3 +7,5 @@ dist
 .vscode
 chroma_store
 *.json
+alembic.ini
+alembic/
