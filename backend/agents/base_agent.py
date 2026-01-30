@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from actions import Action
 from agents.schemas import CampaignState, ExecutionResult
@@ -8,25 +8,17 @@ from agents.schemas import CampaignState, ExecutionResult
 class BaseAgent(ABC):
     """
     Base class for all agents.
-
-    Contract:
-    - Every agent MUST define class attribute: action: Action
-    - Agent NEVER mutates state directly
-    - Agent returns ExecutionResult only
-    - Dispatcher owns state mutation
     """
 
     action: Action
 
     def __init_subclass__(cls):
-        """
-        Enforce that every subclass defines a valid Action.
-        Fails fast at import time.
-        """
         super().__init_subclass__()
 
         if not hasattr(cls, "action"):
-            raise TypeError(f"{cls.__name__} must define class attribute 'action'")
+            raise TypeError(
+                f"{cls.__name__} must define class attribute 'action'"
+                )
 
         if not isinstance(cls.action, Action):
             raise TypeError(
@@ -34,7 +26,11 @@ class BaseAgent(ABC):
             )
 
     @abstractmethod
-    def execute(self, state: CampaignState) -> ExecutionResult:
+    def execute(
+        self,
+        state: CampaignState,
+        reflection: List[Dict] | None = None
+    ) -> ExecutionResult:
         """
         Execute exactly one action.
 
@@ -42,6 +38,17 @@ class BaseAgent(ABC):
         Must return ExecutionResult.
         """
         pass
+
+    def reflect(self, state: CampaignState) -> List[Dict]:
+        """
+        Extract past reflection entries for this agent action.
+        """
+        reflections = state.get("self_reflection", [])
+
+        return [
+            r for r in reflections
+            if r.get("action") == self.action.value
+        ]
 
     def _success(self, data: Dict[str, Any] | None = None) -> ExecutionResult:
         return ExecutionResult(
