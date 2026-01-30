@@ -12,22 +12,19 @@ logger = logging.getLogger(__name__)
 
 class Dispatcher:
     """
-    Executes exactly one Action against CampaignState.
-
-    Guarantees:
-    - Single commit boundary
-    - Idempotent action execution
-    - Structured history
-    - Deterministic state mutation
+    Execute exactly one Action against CampaignState.
+    Guarantee Single commit boundary, Idempotent action execution,
+    Structured history, Deterministic state mutation,
+    Retry with self-reflection
     """
 
     def __init__(self, registry: AgentRegistry):
         self.registry = registry
 
     def run(self, state: CampaignState, action: Action) -> ExecutionResult:
-        timestamp = time.time()
+        MAX_RETRIES = 2
 
-        # Idempotency: skip already successful actions
+        # Idempotency
         for entry in state.get("history", []):
             if entry["action"] == action.value and entry["success"]:
                 logger.info(f"Skipping already completed action: {action.value}")
@@ -37,61 +34,83 @@ class Dispatcher:
                     data=entry.get("data", {})
                 )
 
-        try:
-            agent = self.registry.get(action)
+        agent = self.registry.get(action)
 
-            logger.info(
-                f"Dispatcher executing action={action.value} agent={agent.__class__.__name__}"
-            )
+        # Retry loop
+        for attempt in range(MAX_RETRIES + 1):
+            timestamp = time.time()
 
-            result = agent.execute(state)
+            try:
+                logger.info(
+                    f"Dispatcher executing action={action.value} "
+                    f"agent={agent.__class__.__name__} attempt={attempt}"
+                )
 
-            history_entry: Dict[str, Any] = {
-                "action": action.value,
-                "success": result.success,
-                "timestamp": timestamp,
-                "data_keys": list(result.data.keys()) if result.data else [],
-            }
+                result = agent.execute(state)
 
-            if result.success:
-                if result.data:
-                    apply_execution_result(state, result.data)
+                history_entry: Dict[str, Any] = {
+                    "action": action.value,
+                    "attempt": attempt,
+                    "success": result.success,
+                    "timestamp": timestamp,
+                }
 
-                history_entry["data"] = result.data
-            else:
+                # Success
+                if result.success:
+                    if result.data:
+                        apply_execution_result(state, result.data)
+                        history_entry["data"] = result.data
+
+                    state.setdefault("history", []).append(history_entry)
+                    state["current_action"] = action.value
+                    return result
+
+                # Failure
                 history_entry["error"] = result.error
+                state.setdefault("history", []).append(history_entry)
 
                 state.setdefault("errors", []).append({
                     "action": action.value,
+                    "attempt": attempt,
+                    "error": result.error,
                     "timestamp": timestamp,
-                    "error": result.error
                 })
 
-            # Single commit boundary
-            state.setdefault("history", []).append(history_entry)
-            state["current_action"] = action.value
+                # Self reflection
+                state.setdefault("self_reflection", []).append({
+                    "action": action.value,
+                    "attempt": attempt,
+                    "error": result.error,
+                    "timestamp": timestamp,
+                })
 
-            return result
+                logger.warning(
+                    f"Action failed: {action.value} attempt={attempt} → retrying"
+                )
 
-        except Exception as e:
-            logger.exception("Dispatcher execution failed.")
+                time.sleep(0.5)
 
-            error_entry = {
-                "action": action.value,
-                "timestamp": timestamp,
-                "error": str(e)
-            }
+            except Exception as e:
+                logger.exception("Dispatcher execution crashed.")
 
-            state.setdefault("errors", []).append(error_entry)
-            state.setdefault("history", []).append({
-                "action": action.value,
-                "success": False,
-                "timestamp": timestamp,
-                "error": str(e)
-            })
+                state.setdefault("errors", []).append({
+                    "action": action.value,
+                    "attempt": attempt,
+                    "error": str(e),
+                    "timestamp": timestamp,
+                })
 
-            return ExecutionResult(
-                action=action.value,
-                success=False,
-                error=str(e)
-            )
+                state.setdefault("history", []).append({
+                    "action": action.value,
+                    "attempt": attempt,
+                    "success": False,
+                    "timestamp": timestamp,
+                    "error": str(e),
+                })
+
+        # Total Failure after retries
+        return ExecutionResult(
+            action=action.value,
+            success=False,
+            error="Max retries exceeded",
+        )
