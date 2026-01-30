@@ -46,7 +46,8 @@ class Dispatcher:
                     f"agent={agent.__class__.__name__} attempt={attempt}"
                 )
 
-                result = agent.execute(state)
+                reflection = agent.reflect(state)
+                result = agent.execute(state, reflection)
 
                 history_entry: Dict[str, Any] = {
                     "action": action.value,
