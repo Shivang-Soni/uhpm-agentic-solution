@@ -13,9 +13,12 @@ logger = logging.getLogger(__name__)
 class Dispatcher:
     """
     Execute exactly one Action against CampaignState.
-    Guarantee Single commit boundary, Idempotent action execution,
-    Structured history, Deterministic state mutation,
-    Retry with self-reflection
+    Guarantees:
+    - Single commit boundary
+    - Idempotent action execution
+    - Structured history
+    - Deterministic state mutation
+    - Retry with self-reflection
     """
 
     def __init__(self, registry: AgentRegistry):
@@ -46,7 +49,8 @@ class Dispatcher:
                     f"agent={agent.__class__.__name__} attempt={attempt}"
                 )
 
-                reflection = agent.reflect(state)
+                # Self-Reflection
+                reflection = getattr(agent, "reflect", lambda state: None)(state)
                 result = agent.execute(state, reflection)
 
                 history_entry: Dict[str, Any] = {
@@ -54,9 +58,9 @@ class Dispatcher:
                     "attempt": attempt,
                     "success": result.success,
                     "timestamp": timestamp,
+                    "reflection": reflection,
                 }
 
-                # Success
                 if result.success:
                     if result.data:
                         apply_execution_result(state, result.data)
@@ -66,10 +70,9 @@ class Dispatcher:
                     state["current_action"] = action.value
                     return result
 
-                # Failure
+                # Failure handling
                 history_entry["error"] = result.error
                 state.setdefault("history", []).append(history_entry)
-
                 state.setdefault("errors", []).append({
                     "action": action.value,
                     "attempt": attempt,
@@ -77,30 +80,28 @@ class Dispatcher:
                     "timestamp": timestamp,
                 })
 
-                # Self reflection
-                state.setdefault("self_reflection", []).append({
+                # Store self-reflection for failed attempt
+                state.setdefault("self_reflections", []).append({
                     "action": action.value,
                     "attempt": attempt,
                     "error": result.error,
+                    "reflection": reflection,
                     "timestamp": timestamp,
                 })
 
                 logger.warning(
                     f"Action failed: {action.value} attempt={attempt} → retrying"
                 )
-
                 time.sleep(0.5)
 
             except Exception as e:
                 logger.exception("Dispatcher execution crashed.")
-
                 state.setdefault("errors", []).append({
                     "action": action.value,
                     "attempt": attempt,
                     "error": str(e),
                     "timestamp": timestamp,
                 })
-
                 state.setdefault("history", []).append({
                     "action": action.value,
                     "attempt": attempt,
@@ -109,7 +110,7 @@ class Dispatcher:
                     "error": str(e),
                 })
 
-        # Total Failure after retries
+        # Total failure after retries
         return ExecutionResult(
             action=action.value,
             success=False,
