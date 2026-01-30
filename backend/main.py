@@ -1,13 +1,18 @@
 from fastapi import FastAPI
-from api.routes import router
-from agents.schemas import CampaignState
+from pydantic import BaseModel
+from typing import List, Optional
 from agents.run_campaign import CampaignRunner
 from actions import Action
+from agents.schemas import CampaignState
 
 app = FastAPI(title="UHPM Agent API")
-app.include_router(router)
 
 runner = CampaignRunner()
+
+
+class RunCampaignRequest(BaseModel):
+    state: CampaignState
+    execution_plan: Optional[List[Action]] = [Action.PLAN]
 
 
 @app.get("/")
@@ -16,11 +21,15 @@ def root():
 
 
 @app.post("/run_campaign")
-def run_campaign_endpoint(state: CampaignState):
-    # Start action = PLAN
+def run_campaign_endpoint(request: RunCampaignRequest):
+    """
+    Run a campaign using the given state and execution plan.
+    Stores objective in vector memory and retrieves context from previous campaigns.
+    """
     updated_state = runner.run_campaign(
-        state=state,
-        execution_plan=[Action.PLAN],
+        state=request.state,
+        execution_plan=request.execution_plan
     )
 
+    # JSON-serializable return
     return updated_state
