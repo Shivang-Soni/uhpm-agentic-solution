@@ -5,16 +5,18 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 from core.config import settings
 
-# Load embedding model
+# Load embedding model (global singleton)
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Init persistent Chroma client
-chroma_client = chromadb.PersistentClient(path=settings.PERSIST_DIRECTORY)
+chroma_client = chromadb.PersistentClient(
+    path=settings.PERSIST_DIRECTORY
+)
 
 # Load or create collection
 collection = chroma_client.get_or_create_collection(
     name="uhpm_collection",
-    metadata={"hnsw:space": "cosine"}  # cosine similarity
+    metadata={"hnsw:space": "cosine"}
 )
 
 
@@ -27,12 +29,6 @@ def add_document(
 ) -> Dict:
     """
     Persist agent experience into vector memory.
-    Stores:
-    - raw text
-    - action
-    - success flag
-    - campaign_id
-    - optional metadata
     """
 
     doc_id = str(uuid.uuid4())
@@ -57,10 +53,13 @@ def add_document(
     return {"id": doc_id}
 
 
-def search(query: str, k: int = 3, action: Optional[str] = None) -> Dict:
+def search(
+    query: str,
+    k: int = 3,
+    action: Optional[str] = None
+) -> Dict:
     """
     Semantic search over agent memory.
-    Optional filter by action.
     """
 
     query_embedding = embedding_model.encode(query).tolist()
@@ -74,7 +73,6 @@ def search(query: str, k: int = 3, action: Optional[str] = None) -> Dict:
         include=["documents", "metadatas", "distances"],
     )
 
-    # Always return primitive structures
     return {
         "documents": raw.get("documents", [[]])[0],
         "metadatas": raw.get("metadatas", [[]])[0],

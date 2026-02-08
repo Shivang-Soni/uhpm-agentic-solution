@@ -13,9 +13,13 @@ class Campaign(Base):
 
     name = Column(String, nullable=True)
 
-    state = Column(String, nullable=False)
+    state = Column(JSON, nullable=False)
+
+    status = Column(String, nullable=True)       # running | completed | failed
+    last_action = Column(String, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(
-        DateTime(timezone=True), onupdate=func.now()
+        DateTime(timezone=True),
+        onupdate=func.now()
     )
