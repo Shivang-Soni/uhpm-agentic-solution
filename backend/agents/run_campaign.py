@@ -1,13 +1,12 @@
 import logging
 from typing import List
 
-from agents.bootstrap_runtime import build_registry
+from agents.registry import build_registry
 from agents.dispatcher import Dispatcher
 from agents.agent_runner import AgentRunner
 from actions import Action
 from agents.schemas import CampaignState
 
-# Vector Store importieren
 from vectorstore.store import search, add_document
 
 logging.basicConfig(level=logging.INFO)
@@ -16,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 class CampaignRunner:
     """
-    Run a campaign using agents and optionally leverage vector memory for
-    past campaigns / audience insights.
+    Orchestrates campaign execution across agents
+    and integrates vector memory for contextual learning.
     """
 
     def __init__(self):
@@ -25,23 +24,49 @@ class CampaignRunner:
         self.dispatcher = Dispatcher(self.registry)
         self.agent_runner = AgentRunner(self.dispatcher)
 
-    def run_campaign(self, state: CampaignState, execution_plan: List[Action]) -> CampaignState:
-        """
-        Run the campaign based on the provided state and execution plan.
-        Uses vector memory to provide context if available.
-        """
+    def run_campaign(
+        self,
+        state: CampaignState,
+        execution_plan: List[Action]
+    ) -> CampaignState:
         logger.info("Starting campaign run.")
 
-        # Optional: Kontext aus vergangene Kampagnen abrufen
-        context_results = search(state.get("objective", ""), k=3)
-        state["vector_memory"] = context_results
+        # Retrieve vector memory context
+        query_text = state.get("brief", "")
+        if query_text:
+            memory_context = search(query_text, k=3)
+        else:
+            memory_context = {}
 
-        updated_state = self.agent_runner.run(state, execution_plan)
+        state["memory_context"] = memory_context
 
-        add_document(
-            text=state.get("objective", "No objective"),
-            metadata={"campaign_id": str(state.get("id", "unknown"))}
-        )
+        success = True
+        error_message = None
+
+        try:
+            updated_state = self.agent_runner.run(
+                state,
+                execution_plan
+            )
+        except Exception as e:
+            success = False
+            error_message = str(e)
+            logger.exception("Campaign run failed.")
+            raise
+
+        finally:
+            # Persist learning into vector memory
+            add_document(
+                text=query_text or "No campaign brief provided",
+                action=execution_plan[0].value if execution_plan else "unknown",
+                success=success,
+                campaign_id=str(state.get("campaign_id", "unknown")),
+                metadata={
+                    "last_action": execution_plan[-1].value
+                    if execution_plan else None,
+                    "error": error_message,
+                },
+            )
 
         logger.info("Campaign run finished.")
         return updated_state
