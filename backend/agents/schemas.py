@@ -103,6 +103,7 @@ class ExecutionResult(BaseModel):
     success: bool = True
     data: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    evaluation: Optional[Dict[str, Any]] = None
 
 
 class GraphRequest(BaseModel):
