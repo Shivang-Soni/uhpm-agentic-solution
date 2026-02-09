@@ -65,6 +65,8 @@ class Dispatcher:
                     if result.data:
                         apply_execution_result(state, result.data)
                         history_entry["data"] = result.data
+                    if result.evaluation:
+                        history_entry["evaulation"] = result.evaluation
 
                     state.setdefault("history", []).append(history_entry)
                     state["current_action"] = action.value
@@ -72,6 +74,8 @@ class Dispatcher:
 
                 # Failure handling
                 history_entry["error"] = result.error
+                if result.evaluation:
+                    history_entry["evauluation"] = result.evaluation
                 state.setdefault("history", []).append(history_entry)
                 state.setdefault("errors", []).append({
                     "action": action.value,
