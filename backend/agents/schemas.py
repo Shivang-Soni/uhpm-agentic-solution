@@ -13,6 +13,7 @@ class PlannerOutput(BaseModel):
     needs_experimentation: bool
     needs_analytics: bool
     additional_context: Optional[str] = None
+    add_evaluation_steps: bool = True
 
 
 class AnalyticsOutput(BaseModel):
