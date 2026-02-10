@@ -17,6 +17,7 @@ class CampaignRunner:
     """
     Orchestrates campaign execution across agents
     and integrates vector memory for contextual learning.
+    Automatically inserts EvaluationAgent steps after each action.
     """
 
     def __init__(self):
@@ -33,12 +34,17 @@ class CampaignRunner:
 
         # Retrieve vector memory context
         query_text = state.get("brief", "")
-        if query_text:
-            memory_context = search(query_text, k=3)
-        else:
-            memory_context = {}
-
+        memory_context = search(query_text, k=3) if query_text else {}
         state["memory_context"] = memory_context
+
+        # Build execution plan with optional evaluation steps
+        updated_execution_plan: List[Action] = []
+        add_eval = state.get("add_evaluation_steps", True)
+
+        for action in execution_plan:
+            updated_execution_plan.append(action)
+            if add_eval and Action.EVALUATE in self.registry.list_actions():
+                updated_execution_plan.append(Action.EVALUATE)
 
         success = True
         error_message = None
@@ -46,14 +52,13 @@ class CampaignRunner:
         try:
             updated_state = self.agent_runner.run(
                 state,
-                execution_plan
+                updated_execution_plan
             )
         except Exception as e:
             success = False
             error_message = str(e)
             logger.exception("Campaign run failed.")
             raise
-
         finally:
             # Persist learning into vector memory
             add_document(
