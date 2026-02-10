@@ -17,11 +17,11 @@ from agents.repositories.in_memory_campaign_repository import InMemoryCampaignRe
 def build_registry() -> AgentRegistry:
     registry = AgentRegistry()
 
-    # infra
+    # Infra: Repository + Channel Dispatcher
     repository = InMemoryCampaignRepository()
     channel_dispatcher = ChannelAdapterDispatcher(repository)
 
-    # core agents
+    # Core agents
     registry.register(PlannerAgent())
     registry.register(ResearchAgent())
     registry.register(PersonaAgent())
@@ -30,11 +30,11 @@ def build_registry() -> AgentRegistry:
     registry.register(AnalyticsAgent())
     registry.register(EvaluationAgent())
 
-    # lifecycle agents
+    # Lifecycle / Channel agents
     registry.register(PreviewAgent(channel_dispatcher))
     registry.register(PublishAgent(channel_dispatcher))
 
-    # hard validation: all Actions must be wired
+    # Hard validation
     registry.validate()
 
     return registry
