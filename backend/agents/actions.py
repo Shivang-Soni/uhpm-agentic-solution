@@ -14,3 +14,4 @@ class Action(str, Enum):
     RUN_EXPERIMENT = "run_experiment"
 
     PLAN = "plan"
+    EVALUATE = "evaluate"
