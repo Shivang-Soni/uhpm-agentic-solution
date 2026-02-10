@@ -8,6 +8,7 @@ from agents.experiment_agent import ExperimentationAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.channel_agents.preview_agent import PreviewAgent
 from agents.channel_agents.publish_agent import PublishAgent
+from agents.evaluation_agent import EvaluationAgent
 
 from agents.adapters.channel_adapter_dispatcher import ChannelAdapterDispatcher
 from agents.repositories.in_memory_campaign_repository import InMemoryCampaignRepository
@@ -27,6 +28,7 @@ def build_registry() -> AgentRegistry:
     registry.register(ContentAgent())
     registry.register(ExperimentationAgent())
     registry.register(AnalyticsAgent())
+    registry.register(EvaluationAgent())
 
     # lifecycle agents
     registry.register(PreviewAgent(channel_dispatcher))
