@@ -53,3 +53,7 @@ class InMemoryCampaignRepository(BaseCampaignRepository):
             raise KeyError(f"Campaign not found: {campaign_id}")
 
         return self._store[campaign_id]
+
+    def list(self) -> list[Dict[str, Any]]:
+        return list(self._store.values())
+    
