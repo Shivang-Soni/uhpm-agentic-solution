@@ -1,9 +1,17 @@
+from typing import List, Optional
+
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional
+
 from agents.run_campaign import CampaignRunner
 from actions import Action
 from agents.schemas import CampaignState
+from agents.repositories.in_memory_campaign_repository import (
+    InMemoryCampaignRepository
+)
+
+repository = InMemoryCampaignRepository()
 
 app = FastAPI(title="UHPM Agent API")
 
@@ -33,3 +41,12 @@ def run_campaign_endpoint(request: RunCampaignRequest):
 
     # JSON-serializable return
     return updated_state
+
+
+@app.get("/api/campaigns")
+def list_campaigns():
+    """
+    List all the campaigns in the repository
+    """
+    campaigns = repository.list()
+    return campaigns
