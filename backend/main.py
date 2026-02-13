@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+from datetime import datetime
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -28,21 +28,6 @@ def root():
     return {"status": "ok", "msg": "UHPM Agent API is running."}
 
 
-@app.post("/run_campaign")
-def run_campaign_endpoint(request: RunCampaignRequest):
-    """
-    Run a campaign using the given state and execution plan.
-    Stores objective in vector memory and retrieves context from previous campaigns.
-    """
-    updated_state = runner.run_campaign(
-        state=request.state,
-        execution_plan=request.execution_plan
-    )
-
-    # JSON-serializable return
-    return updated_state
-
-
 @app.get("/api/campaigns")
 def list_campaigns():
     """
@@ -50,3 +35,48 @@ def list_campaigns():
     """
     campaigns = repository.list()
     return campaigns
+
+
+@app.post("/run-camppaign")
+def run_campaign_endpoint(request: RunCampaignRequest):
+    # Save campaign initial
+    campaign_record = repository.create(
+        {
+            "objective": request.state.brief,
+            "status": "running",
+            "created_at": datetime.utcnow().isoformat()
+        }
+    )
+
+    campaign_id = campaign_record["id"]
+
+    try:
+        # Carry out the camopaign execution
+        updated_state = runner.run_campaign(
+            state=request.state,
+            execution_plan=request.execution_plan
+        )
+        # Update status
+        final_status = "failed" if updated_state.errors else "completed"
+
+        repository.update(
+            campaign_id,
+            {
+                "status": final_status
+            }
+        )
+
+        # Add IDs to response
+        return {
+            "campaign_id": campaign_id,
+            **updated_state.dict()
+        }
+    
+    except Exception as e:
+        repository.update(
+            campaign_id,
+            {
+                'status': "failed"
+            }
+        )
+        raise e
