@@ -34,7 +34,13 @@ def list_campaigns():
     List all the campaigns in the repository
     """
     campaigns = repository.list_all()
-    return campaigns
+    return [
+        {
+            "campaign_id": c["id"],
+            **c
+        }
+        for c in campaigns
+    ]
 
 
 @app.post("/run-campaign")
