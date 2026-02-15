@@ -1,5 +1,6 @@
 import logging
 from typing import List
+import uuid
 
 from agents.registry import build_registry
 from agents.dispatcher import Dispatcher
@@ -32,6 +33,8 @@ class CampaignRunner:
     ) -> CampaignState:
         logger.info("Starting campaign run.")
 
+        if not state.get("campaign_id"):
+            state["campaign_id"] = str(uuid.uuid4())
         # Retrieve vector memory context
         query_text = state.get("brief", "")
         memory_context = search(query_text, k=3) if query_text else {}
