@@ -22,7 +22,7 @@ class InMemoryCampaignRepository(BaseCampaignRepository):
         campaign_id = str(uuid.uuid4())
 
         record = {
-            "id": campaign_id,
+            "campaign_id": campaign_id,
             **campaign
         }
 
