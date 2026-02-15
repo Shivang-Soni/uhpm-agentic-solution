@@ -4,7 +4,6 @@ import { ChevronRight, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const CampaignHistory = () => {
   const [campaigns, setCampaigns] = React.useState([]);
@@ -17,7 +16,7 @@ const CampaignHistory = () => {
 
   const fetchCampaigns = async () => {
     try {
-      const response = await axios.get(`${API}/campaigns`);
+      const response = await axios.get(`${BACKEND_URL}/campaigns`);
       setCampaigns(response.data);
     } catch (error) {
       console.error("Failed to fetch campaigns:", error);
