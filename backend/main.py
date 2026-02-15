@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from agents.run_campaign import CampaignRunner
-from actions import Action
+from agents.actions import Action
 from agents.schemas import CampaignState
 from agents.repositories.in_memory_campaign_repository import (
     InMemoryCampaignRepository
