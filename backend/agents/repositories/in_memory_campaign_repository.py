@@ -54,6 +54,5 @@ class InMemoryCampaignRepository(BaseCampaignRepository):
 
         return self._store[campaign_id]
 
-    def list(self) -> list[Dict[str, Any]]:
+    def list_all(self) -> list[Dict[str, Any]]:
         return list(self._store.values())
-    

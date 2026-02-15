@@ -28,16 +28,16 @@ def root():
     return {"status": "ok", "msg": "UHPM Agent API is running."}
 
 
-@app.get("/api/campaigns")
+@app.get("/campaigns")
 def list_campaigns():
     """
     List all the campaigns in the repository
     """
-    campaigns = repository.list()
+    campaigns = repository.list_all()
     return campaigns
 
 
-@app.post("/run-camppaign")
+@app.post("/run-campaign")
 def run_campaign_endpoint(request: RunCampaignRequest):
     # Save campaign initial
     campaign_record = repository.create(
@@ -71,7 +71,7 @@ def run_campaign_endpoint(request: RunCampaignRequest):
             "campaign_id": campaign_id,
             **updated_state.dict()
         }
-    
+
     except Exception as e:
         repository.update(
             campaign_id,
@@ -80,3 +80,12 @@ def run_campaign_endpoint(request: RunCampaignRequest):
             }
         )
         raise e
+
+@app.get("/campaigns/{campaign_id}")
+def get_campaign(campaign_id: str):
+    try:
+        return repository.get(campaign_id)
+    except KeyError:
+        return {
+            "error": "Campaign not found."
+        }
