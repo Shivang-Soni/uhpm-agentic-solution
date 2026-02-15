@@ -49,6 +49,7 @@ def run_campaign_endpoint(request: RunCampaignRequest):
     )
 
     campaign_id = campaign_record["id"]
+    request.state.campaign_id = campaign_id
 
     try:
         # Carry out the camopaign execution
