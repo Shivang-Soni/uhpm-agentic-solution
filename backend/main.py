@@ -2,6 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from agents.run_campaign import CampaignRunner
@@ -14,6 +15,13 @@ from agents.repositories.in_memory_campaign_repository import (
 repository = InMemoryCampaignRepository()
 
 app = FastAPI(title="UHPM Agent API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 runner = CampaignRunner()
 
