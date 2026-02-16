@@ -17,7 +17,7 @@ const CampaignHistory = () => {
   const fetchCampaigns = async () => {
     try {
       const response = await axios.get(`${BACKEND_URL}/campaigns`);
-      setCampaigns(response.data);
+      setCampaigns(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch campaigns:", error);
     } finally {
