@@ -95,7 +95,7 @@ const CampaignDetail = () => {
               <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-border"></div>
               
               <div className="space-y-6">
-                {campaign.history.map((step, idx) => (
+                {(campaign.history || []).map((step, idx) => (
                   <div key={idx} className="relative flex items-start space-x-4">
                     <div className="relative z-10 flex items-center justify-center w-6 h-6 rounded-full bg-card border-2 border-border">
                       {getStatusIcon(step.status)}
