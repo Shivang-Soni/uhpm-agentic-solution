@@ -29,7 +29,7 @@ const CampaignDetail = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "success":
+      case "completed":
         return <CheckCircle2 size={20} className="text-green-500" />;
       case "failed":
         return <XCircle size={20} className="text-red-500" />;
