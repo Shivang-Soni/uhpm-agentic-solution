@@ -20,7 +20,7 @@ runner = CampaignRunner()
 
 class RunCampaignRequest(BaseModel):
     state: CampaignState
-    execution_plan: Optional[List[Action]] = [Action.PLAN]
+    execution_plan: Optional[List[Action]] = None
 
 
 @app.get("/")
@@ -30,21 +30,16 @@ def root():
 
 @app.get("/campaigns")
 def list_campaigns():
-    """
-    List all the campaigns in the repository
-    """
     campaigns = repository.list_all()
-    return [
-        {
-            "campaign_id": c["id"],
-            **c
-        }
-        for c in campaigns
-    ]
+    return campaigns
 
 
 @app.post("/run-campaign")
 def run_campaign_endpoint(request: RunCampaignRequest):
+
+    # Default plan if none given
+    execution_plan = request.execution_plan or [Action.PLAN]
+
     # Save campaign initial
     campaign_record = repository.create(
         {
@@ -54,16 +49,15 @@ def run_campaign_endpoint(request: RunCampaignRequest):
         }
     )
 
-    campaign_id = campaign_record["id"]
+    campaign_id = campaign_record["campaign_id"]
     request.state.campaign_id = campaign_id
 
     try:
-        # Carry out the camopaign execution
         updated_state = runner.run_campaign(
             state=request.state,
-            execution_plan=request.execution_plan
+            execution_plan=execution_plan
         )
-        # Update status
+
         final_status = "failed" if updated_state.errors else "completed"
 
         repository.update(
@@ -73,7 +67,6 @@ def run_campaign_endpoint(request: RunCampaignRequest):
             }
         )
 
-        # Add IDs to response
         return {
             "campaign_id": campaign_id,
             **updated_state.dict()
@@ -82,17 +75,14 @@ def run_campaign_endpoint(request: RunCampaignRequest):
     except Exception as e:
         repository.update(
             campaign_id,
-            {
-                'status': "failed"
-            }
+            {"status": "failed"}
         )
         raise e
+
 
 @app.get("/campaigns/{campaign_id}")
 def get_campaign(campaign_id: str):
     try:
         return repository.get(campaign_id)
     except KeyError:
-        return {
-            "error": "Campaign not found."
-        }
+        return {"error": "Campaign not found."}
