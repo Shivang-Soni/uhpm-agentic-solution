@@ -31,7 +31,7 @@ const CampaignRunner = () => {
         execution_plan: ["PLAN"] // Action enum as string
       };
 
-      const res = await axios.post(`${BACKEND_URL}/run_campaign`, payload);
+      const res = await axios.post(`${BACKEND_URL}/run-campaign`, payload);
       setResult(res.data);
 
     } catch (err) {
