@@ -1,7 +1,7 @@
 import logging
 from typing import Dict
 
-from actions import Action
+from agents.actions import Action
 from agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)

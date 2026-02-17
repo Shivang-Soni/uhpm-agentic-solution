@@ -2,10 +2,10 @@ import logging
 from typing import List
 import uuid
 
-from agents.registry import build_registry
+from agents.registry import AgentRegistry
 from agents.dispatcher import Dispatcher
 from agents.agent_runner import AgentRunner
-from actions import Action
+from agents.actions import Action
 from agents.schemas import CampaignState
 
 from vectorstore.store import search, add_document
@@ -22,7 +22,7 @@ class CampaignRunner:
     """
 
     def __init__(self):
-        self.registry = build_registry()
+        self.registry = AgentRegistry()
         self.dispatcher = Dispatcher(self.registry)
         self.agent_runner = AgentRunner(self.dispatcher)
 

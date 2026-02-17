@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, List, TypedDict
 
 from pydantic import BaseModel, Field
 
-from actions import Action
+from agents.actions import Action
 
 
 class PlannerOutput(BaseModel):

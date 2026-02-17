@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from actions import Action
+from agents.actions import Action
 from agents.dispatcher import Dispatcher
 from agents.schemas import CampaignState
 

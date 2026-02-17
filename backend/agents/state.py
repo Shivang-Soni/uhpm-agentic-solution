@@ -1,6 +1,6 @@
 from typing import Dict, Any
 
-from actions import Action
+from agents.actions import Action
 from agents.schemas import CampaignState
 
 

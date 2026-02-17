@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List
 
-from actions import Action
+from agents.actions import Action
 from agents.schemas import CampaignState, ExecutionResult
 
 

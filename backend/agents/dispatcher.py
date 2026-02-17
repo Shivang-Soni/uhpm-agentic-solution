@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Dict, Any
 
-from actions import Action
+from agents.actions import Action
 from agents.registry import AgentRegistry
 from agents.schemas import CampaignState, ExecutionResult
 from agents.state import apply_execution_result
