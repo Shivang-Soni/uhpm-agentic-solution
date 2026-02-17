@@ -1,5 +1,6 @@
 import logging
-from typing import TypedDict, Dict, Any, List
+from typing import Dict, Any, List
+from typing_extensions import TypedDict
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
