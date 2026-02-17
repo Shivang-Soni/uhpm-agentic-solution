@@ -2,7 +2,7 @@ import uuid
 import logging
 from typing import Dict, Any
 
-from backend.agents.repositories.base_campaign_repository import (
+from agents.repositories.base_campaign_repository import (
     BaseCampaignRepository
 )
 
