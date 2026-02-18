@@ -22,7 +22,11 @@ class PlannerAgent(BaseAgent):
     def __init__(self):
         self.context_agent = PlannerContextAgent()
 
-    def execute(self, state: CampaignState) -> ExecutionResult:
+    def execute(
+            self,
+            state: CampaignState,
+            reflection=None
+            ) -> ExecutionResult:
         try:
             user_task = state.get("task") or state.get("brief") or ""
 
@@ -48,6 +52,9 @@ User request:
 
 External context:
 {json.dumps(context, indent=2)}
+
+Previous reflection:
+{reflection or "None"}
 """
 
             response = invoke(prompt)
