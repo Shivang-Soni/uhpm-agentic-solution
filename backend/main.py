@@ -69,7 +69,7 @@ def run_campaign_endpoint(request: RunCampaignRequest):
             execution_plan=execution_plan
         )
 
-        final_status = "failed" if updated_state.errors else "completed"
+        final_status = "failed" if updated_state.get("errors") else "completed"
 
         repository.update(
             campaign_id,
@@ -80,7 +80,7 @@ def run_campaign_endpoint(request: RunCampaignRequest):
 
         return {
             "campaign_id": campaign_id,
-            **updated_state.dict()
+            **updated_state
         }
 
     except Exception as e:

@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, Any
 
-from backend.agents.retriever_agent import RetrieverAgent
+from agents.retriever_agent import RetrieverAgent
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

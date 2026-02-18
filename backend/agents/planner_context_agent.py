@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Any
 
-from backend.agents.social_insight_agent import SocialInsightAgent
+from agents.social_insight_agent import SocialInsightAgent
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

@@ -73,8 +73,8 @@ class CampaignRunner:
                 campaign_id=str(state.get("campaign_id", "unknown")),
                 metadata={
                     "last_action": execution_plan[-1].value
-                    if execution_plan else None,
-                    "error": error_message,
+                    if execution_plan else "none",
+                    "error": error_message or "",
                 },
             )
 
