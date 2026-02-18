@@ -48,6 +48,9 @@ def run_campaign_endpoint(request: RunCampaignRequest):
     # Default plan if none given
     execution_plan = request.execution_plan or [Action.PLAN]
 
+    # Explicit casting
+    state = CampaignState(**request.state.dict())
+
     # Save campaign initial
     campaign_record = repository.create(
         {
@@ -58,11 +61,11 @@ def run_campaign_endpoint(request: RunCampaignRequest):
     )
 
     campaign_id = campaign_record["campaign_id"]
-    request.state.campaign_id = campaign_id
+    state.campaign_id = campaign_id
 
     try:
         updated_state = runner.run_campaign(
-            state=request.state,
+            state=state,
             execution_plan=execution_plan
         )
 
