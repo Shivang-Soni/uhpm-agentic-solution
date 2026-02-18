@@ -5,6 +5,7 @@ import uuid
 from agents.registry import AgentRegistry
 from agents.dispatcher import Dispatcher
 from agents.agent_runner import AgentRunner
+from agents.planner_agent import PlannerAgent
 from agents.actions import Action
 from agents.schemas import CampaignState
 
@@ -23,6 +24,7 @@ class CampaignRunner:
 
     def __init__(self):
         self.registry = AgentRegistry()
+        self.registry.register(PlannerAgent())
         self.dispatcher = Dispatcher(self.registry)
         self.agent_runner = AgentRunner(self.dispatcher)
 
